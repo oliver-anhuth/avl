@@ -32,6 +32,27 @@ mod tests {
     }
 
     #[test]
+    fn test_get() {
+        use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
+
+        let mut values: Vec<i32> = (0..99).collect();
+        let mut rng = StdRng::seed_from_u64(0);
+        values.shuffle(&mut rng);
+
+        let mut tree = Tree::new();
+        assert!(tree.get(&42).is_none());
+        for value in values.iter() {
+            assert!(tree.insert(*value));
+        }
+        for value in values.iter() {
+            let got = tree.get(value);
+            assert!(got.is_some());
+            assert_eq!(got.unwrap(), value);
+        }
+        assert!(tree.get(&100).is_none());
+    }
+
+    #[test]
     fn test_clear() {
         use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 

@@ -26,6 +26,13 @@ where
         self.root = None;
     }
 
+    pub fn get(&self, key: &K) -> Option<&K> {
+        if let Some(node_ptr) = self.find(key) {
+            return Some(&unsafe { &*node_ptr.as_ptr() }.key);
+        }
+        None
+    }
+
     pub fn insert(&mut self, key: K) -> bool {
         if let Some((parent, mut link_ptr)) = self.find_insert_pos(&key) {
             unsafe {
@@ -34,6 +41,25 @@ where
             return true;
         }
         false
+    }
+
+    fn find(&self, key: &K) -> Link<K> {
+        let mut current = self.root;
+        loop {
+            match current {
+                None => break,
+                Some(mut node_ptr) => unsafe {
+                    if *key == node_ptr.as_mut().key {
+                        break;
+                    } else if *key < node_ptr.as_mut().key {
+                        current = node_ptr.as_mut().left;
+                    } else {
+                        current = node_ptr.as_mut().right;
+                    }
+                },
+            }
+        }
+        current
     }
 
     fn find_insert_pos(&mut self, key: &K) -> Option<(Link<K>, LinkPtr<K>)> {
