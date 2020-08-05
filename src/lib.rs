@@ -43,7 +43,9 @@ mod tests {
         for value in values.iter() {
             assert!(tree.insert(*value));
         }
+        assert!(!tree.is_empty());
         tree.clear();
+        assert!(tree.is_empty());
         for value in values.iter() {
             assert!(tree.insert(*value));
         }
