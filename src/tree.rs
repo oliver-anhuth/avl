@@ -27,17 +27,16 @@ where
     }
 
     pub fn insert(&mut self, key: K) -> bool {
-        unsafe {
-            let (parent, mut link_ptr) = self.find_insert_pos(&key);
-            match link_ptr.as_mut() {
-                Some(_) => return false,
-                None => *link_ptr.as_mut() = Some(Node::create(parent, key)),
+        if let Some((parent, mut link_ptr)) = self.find_insert_pos(&key) {
+            unsafe {
+                *link_ptr.as_mut() = Some(Node::create(parent, key));
             }
+            return true;
         }
-        true
+        false
     }
 
-    fn find_insert_pos(&mut self, key: &K) -> (Link<K>, LinkPtr<K>) {
+    fn find_insert_pos(&mut self, key: &K) -> Option<(Link<K>, LinkPtr<K>)> {
         let mut parent: Link<K> = None;
         let mut link_ptr: LinkPtr<K> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
         loop {
@@ -46,7 +45,7 @@ where
                     None => break,
                     Some(mut node_ptr) => {
                         if *key == node_ptr.as_mut().key {
-                            break;
+                            return None;
                         } else {
                             parent = *link_ptr.as_mut();
                             if *key < node_ptr.as_mut().key {
@@ -59,7 +58,7 @@ where
                 }
             }
         }
-        (parent, link_ptr)
+        Some((parent, link_ptr))
     }
 
     fn postorder<F: FnMut(NodePtr<K>)>(&self, f: F) {
