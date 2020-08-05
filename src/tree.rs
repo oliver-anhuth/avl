@@ -21,45 +21,45 @@ where
         self.root.is_none()
     }
 
+    pub fn clear(&mut self) {
+        self.postorder(|node_ptr| Node::destroy(node_ptr));
+        self.root = None;
+    }
+
     pub fn insert(&mut self, key: K) -> bool {
         unsafe {
             let (parent, mut link_ptr) = self.find_insert_pos(&key);
             match link_ptr.as_mut() {
-                Some(_) => false,
-                None => {
-                    *link_ptr.as_mut() = Some(Node::create(parent, key));
-                    true
-                }
+                Some(_) => return false,
+                None => *link_ptr.as_mut() = Some(Node::create(parent, key)),
             }
         }
+        true
     }
 
-    unsafe fn find_insert_pos(&mut self, key: &K) -> (Link<K>, LinkPtr<K>) {
+    fn find_insert_pos(&mut self, key: &K) -> (Link<K>, LinkPtr<K>) {
         let mut parent: Link<K> = None;
-        let mut link_ptr: LinkPtr<K> = LinkPtr::new_unchecked(&mut self.root);
+        let mut link_ptr: LinkPtr<K> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
         loop {
-            match link_ptr.as_mut() {
-                None => break,
-                Some(mut node_ptr) => {
-                    if *key == node_ptr.as_mut().key {
-                        break;
-                    } else {
-                        parent = *link_ptr.as_mut();
-                        if *key < node_ptr.as_mut().key {
-                            link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().left);
+            unsafe {
+                match link_ptr.as_mut() {
+                    None => break,
+                    Some(mut node_ptr) => {
+                        if *key == node_ptr.as_mut().key {
+                            break;
                         } else {
-                            link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().right);
+                            parent = *link_ptr.as_mut();
+                            if *key < node_ptr.as_mut().key {
+                                link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().left);
+                            } else {
+                                link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().right);
+                            }
                         }
                     }
                 }
             }
         }
         (parent, link_ptr)
-    }
-
-    pub fn clear(&mut self) {
-        self.postorder(|node_ptr| Node::destroy(node_ptr));
-        self.root = None;
     }
 
     fn postorder<F: FnMut(NodePtr<K>)>(&self, f: F) {
@@ -94,15 +94,18 @@ where
                         }
                     }
                     Direction::FromRight => {
-                        postorder(node_ptr);
+                        // Post order traversal is used for node deletion,
+                        // so make sure not to use node pointer after postorder call.
                         if let Some(mut parent_ptr) = unsafe { node_ptr.as_mut().parent } {
                             if Some(node_ptr) == unsafe { parent_ptr.as_mut().left } {
                                 dir = Direction::FromLeft;
                             } else {
                                 dir = Direction::FromRight;
                             }
+                            postorder(node_ptr);
                             node_ptr = parent_ptr;
                         } else {
+                            postorder(node_ptr);
                             break;
                         }
                     }
