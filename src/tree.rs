@@ -45,18 +45,15 @@ where
 
     fn find(&self, key: &K) -> Link<K> {
         let mut current = self.root;
-        loop {
-            match current {
-                None => break,
-                Some(mut node_ptr) => unsafe {
-                    if *key == node_ptr.as_mut().key {
-                        break;
-                    } else if *key < node_ptr.as_mut().key {
-                        current = node_ptr.as_mut().left;
-                    } else {
-                        current = node_ptr.as_mut().right;
-                    }
-                },
+        while let Some(mut node_ptr) = current {
+            unsafe {
+                if *key == node_ptr.as_mut().key {
+                    break;
+                } else if *key < node_ptr.as_mut().key {
+                    current = node_ptr.as_mut().left;
+                } else {
+                    current = node_ptr.as_mut().right;
+                }
             }
         }
         current
@@ -65,21 +62,16 @@ where
     fn find_insert_pos(&mut self, key: &K) -> Option<(Link<K>, LinkPtr<K>)> {
         let mut parent: Link<K> = None;
         let mut link_ptr: LinkPtr<K> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
-        loop {
-            unsafe {
-                match link_ptr.as_mut() {
-                    None => break,
-                    Some(mut node_ptr) => {
-                        if *key == node_ptr.as_mut().key {
-                            return None;
-                        } else {
-                            parent = *link_ptr.as_mut();
-                            if *key < node_ptr.as_mut().key {
-                                link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().left);
-                            } else {
-                                link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().right);
-                            }
-                        }
+        unsafe {
+            while let Some(mut node_ptr) = link_ptr.as_mut() {
+                if *key == node_ptr.as_mut().key {
+                    return None;
+                } else {
+                    parent = *link_ptr.as_mut();
+                    if *key < node_ptr.as_mut().key {
+                        link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().left);
+                    } else {
+                        link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().right);
                     }
                 }
             }
