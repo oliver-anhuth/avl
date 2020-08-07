@@ -43,6 +43,49 @@ where
         false
     }
 
+    pub fn remove(&mut self, key: &K) -> bool {
+        if let Some(mut node_ptr) = self.find(key) {
+            unsafe {
+                if let Some(mut min_child_ptr) = node_ptr.as_mut().right {
+                    let mut min_child_parent_ptr = node_ptr;
+                    while let Some(left_ptr) = min_child_ptr.as_mut().left {
+                        min_child_parent_ptr = min_child_ptr;
+                        min_child_ptr = left_ptr;
+                    }
+                    if min_child_parent_ptr.as_mut().left == Some(min_child_ptr) {
+                        min_child_parent_ptr.as_mut().left = min_child_ptr.as_mut().right;
+                    } else {
+                        min_child_parent_ptr.as_mut().right = min_child_ptr.as_mut().right;
+                    }
+                    if let Some(mut right_ptr) = min_child_ptr.as_mut().right {
+                        right_ptr.as_mut().parent = min_child_ptr.as_mut().parent;
+                    }
+                    std::mem::swap(&mut node_ptr.as_mut().key, &mut min_child_ptr.as_mut().key);
+                    Node::destroy(min_child_ptr);
+                    debug_assert!(self.get(key).is_none());
+                } else {
+                    debug_assert!(node_ptr.as_mut().right.is_none());
+                    if let Some(mut parent_ptr) = node_ptr.as_mut().parent {
+                        if parent_ptr.as_mut().left == Some(node_ptr) {
+                            parent_ptr.as_mut().left = node_ptr.as_mut().left;
+                        } else {
+                            parent_ptr.as_mut().right = node_ptr.as_mut().left;
+                        }
+                    } else {
+                        self.root = node_ptr.as_mut().left;
+                    }
+                    if let Some(mut left_ptr) = node_ptr.as_mut().left {
+                        left_ptr.as_mut().parent = node_ptr.as_mut().parent;
+                    }
+                    Node::destroy(node_ptr);
+                    debug_assert!(self.get(key).is_none());
+                }
+            }
+            return true;
+        }
+        false
+    }
+
     fn find(&self, key: &K) -> Link<K> {
         let mut current = self.root;
         while let Some(mut node_ptr) = current {

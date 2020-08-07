@@ -18,7 +18,7 @@ mod tests {
     fn test_insert() {
         use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 
-        let mut values: Vec<i32> = (0..99).collect();
+        let mut values: Vec<i32> = (0..100).collect();
         let mut rng = StdRng::seed_from_u64(0);
         values.shuffle(&mut rng);
 
@@ -35,7 +35,7 @@ mod tests {
     fn test_get() {
         use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 
-        let mut values: Vec<i32> = (0..99).collect();
+        let mut values: Vec<i32> = (0..1000).collect();
         let mut rng = StdRng::seed_from_u64(0);
         values.shuffle(&mut rng);
 
@@ -49,14 +49,14 @@ mod tests {
             assert!(got.is_some());
             assert_eq!(got.unwrap(), value);
         }
-        assert!(tree.get(&100).is_none());
+        assert!(tree.get(&-42).is_none());
     }
 
     #[test]
     fn test_clear() {
         use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 
-        let mut values: Vec<i32> = (0..99).collect();
+        let mut values: Vec<i32> = (0..1000).collect();
         let mut rng = StdRng::seed_from_u64(0);
         values.shuffle(&mut rng);
 
@@ -70,5 +70,27 @@ mod tests {
         for value in values.iter() {
             assert!(tree.insert(*value));
         }
+    }
+
+    #[test]
+    fn test_remove() {
+        use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
+
+        let mut values: Vec<i32> = (0..1000).collect();
+        let mut rng = StdRng::seed_from_u64(0);
+        values.shuffle(&mut rng);
+
+        let mut tree = Tree::new();
+        for value in values.iter() {
+            assert!(tree.insert(*value));
+        }
+
+        values.shuffle(&mut rng);
+        for value in values.iter() {
+            assert!(tree.get(value).is_some());
+            assert!(tree.remove(value));
+            assert!(tree.get(value).is_none());
+        }
+        assert!(tree.is_empty())
     }
 }
