@@ -67,10 +67,27 @@ where
                         right_ptr.as_mut().parent = min_child_ptr.as_mut().parent;
                     }
 
-                    // Replace node to be deleted by smallest child
-                    std::mem::swap(&mut node_ptr.as_mut().key, &mut min_child_ptr.as_mut().key);
-                    Node::destroy(min_child_ptr);
-                    debug_assert!(self.get(key).is_none());
+                    // Replace node to-be-deleted by smallest child
+                    min_child_ptr.as_mut().left = node_ptr.as_mut().left;
+                    if let Some(mut left_ptr) = node_ptr.as_mut().left {
+                        left_ptr.as_mut().parent = Some(min_child_ptr);
+                    }
+
+                    min_child_ptr.as_mut().right = node_ptr.as_mut().right;
+                    if let Some(mut right_ptr) = node_ptr.as_mut().right {
+                        right_ptr.as_mut().parent = Some(min_child_ptr);
+                    }
+
+                    min_child_ptr.as_mut().parent = node_ptr.as_mut().parent;
+                    if let Some(mut parent_ptr) = node_ptr.as_mut().parent {
+                        if parent_ptr.as_mut().left == Some(node_ptr) {
+                            parent_ptr.as_mut().left = Some(min_child_ptr);
+                        } else {
+                            parent_ptr.as_mut().right = Some(min_child_ptr);
+                        }
+                    } else {
+                        self.root = Some(min_child_ptr);
+                    }
                 } else {
                     // Node to-be-deleted is stem or leaf, unlink from tree.
                     debug_assert!(node_ptr.as_mut().right.is_none());
@@ -86,10 +103,10 @@ where
                     if let Some(mut left_ptr) = node_ptr.as_mut().left {
                         left_ptr.as_mut().parent = node_ptr.as_mut().parent;
                     }
-                    Node::destroy(node_ptr);
-                    debug_assert!(self.get(key).is_none());
                 }
+                Node::destroy(node_ptr);
             }
+            debug_assert!(self.get(key).is_none());
             return true;
         }
         false
