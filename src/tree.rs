@@ -44,14 +44,20 @@ where
     }
 
     pub fn remove(&mut self, key: &K) -> bool {
+        // Find node to-be-deleted
         if let Some(mut node_ptr) = self.find(key) {
             unsafe {
+                // Check if node to-be-delete has right sub tree
                 if let Some(mut min_child_ptr) = node_ptr.as_mut().right {
+                    // Find smallest child node in right sub tree
                     let mut min_child_parent_ptr = node_ptr;
                     while let Some(left_ptr) = min_child_ptr.as_mut().left {
                         min_child_parent_ptr = min_child_ptr;
                         min_child_ptr = left_ptr;
                     }
+
+                    // Smallest child node is stem or leaf, unlink from tree
+                    debug_assert!(min_child_ptr.as_mut().left.is_none());
                     if min_child_parent_ptr.as_mut().left == Some(min_child_ptr) {
                         min_child_parent_ptr.as_mut().left = min_child_ptr.as_mut().right;
                     } else {
@@ -60,10 +66,13 @@ where
                     if let Some(mut right_ptr) = min_child_ptr.as_mut().right {
                         right_ptr.as_mut().parent = min_child_ptr.as_mut().parent;
                     }
+
+                    // Replace node to be deleted by smallest child
                     std::mem::swap(&mut node_ptr.as_mut().key, &mut min_child_ptr.as_mut().key);
                     Node::destroy(min_child_ptr);
                     debug_assert!(self.get(key).is_none());
                 } else {
+                    // Node to-be-deleted is stem or leaf, unlink from tree.
                     debug_assert!(node_ptr.as_mut().right.is_none());
                     if let Some(mut parent_ptr) = node_ptr.as_mut().parent {
                         if parent_ptr.as_mut().left == Some(node_ptr) {
