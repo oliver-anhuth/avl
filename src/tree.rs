@@ -27,7 +27,7 @@ where
     }
 
     pub fn clear(&mut self) {
-        self.postorder(|node_ptr| Node::destroy(node_ptr));
+        self.postorder(|node_ptr| unsafe { Node::destroy(node_ptr) });
         self.root = None;
         self.len = 0;
     }
@@ -51,71 +51,13 @@ where
     }
 
     pub fn remove(&mut self, key: &K) -> bool {
-        // Find node to-be-deleted
-        if let Some(mut node_ptr) = self.find(key) {
-            unsafe {
-                // Check if node to-be-deleted has right sub tree
-                if let Some(mut min_child_ptr) = node_ptr.as_mut().right {
-                    // Find smallest child node in right sub tree
-                    let mut min_child_parent_ptr = node_ptr;
-                    while let Some(left_ptr) = min_child_ptr.as_mut().left {
-                        min_child_parent_ptr = min_child_ptr;
-                        min_child_ptr = left_ptr;
-                    }
-
-                    // Smallest child node is stem or leaf, unlink from tree
-                    debug_assert!(min_child_ptr.as_mut().left.is_none());
-                    if min_child_parent_ptr.as_mut().left == Some(min_child_ptr) {
-                        min_child_parent_ptr.as_mut().left = min_child_ptr.as_mut().right;
-                    } else {
-                        min_child_parent_ptr.as_mut().right = min_child_ptr.as_mut().right;
-                    }
-                    if let Some(mut right_ptr) = min_child_ptr.as_mut().right {
-                        right_ptr.as_mut().parent = min_child_ptr.as_mut().parent;
-                    }
-
-                    // Replace node to-be-deleted by smallest child node
-                    min_child_ptr.as_mut().left = node_ptr.as_mut().left;
-                    if let Some(mut left_ptr) = node_ptr.as_mut().left {
-                        left_ptr.as_mut().parent = Some(min_child_ptr);
-                    }
-
-                    min_child_ptr.as_mut().right = node_ptr.as_mut().right;
-                    if let Some(mut right_ptr) = node_ptr.as_mut().right {
-                        right_ptr.as_mut().parent = Some(min_child_ptr);
-                    }
-
-                    min_child_ptr.as_mut().parent = node_ptr.as_mut().parent;
-                    if let Some(mut parent_ptr) = node_ptr.as_mut().parent {
-                        if parent_ptr.as_mut().left == Some(node_ptr) {
-                            parent_ptr.as_mut().left = Some(min_child_ptr);
-                        } else {
-                            parent_ptr.as_mut().right = Some(min_child_ptr);
-                        }
-                    } else {
-                        self.root = Some(min_child_ptr);
-                    }
-                } else {
-                    // Node to-be-deleted is stem or leaf, unlink from tree.
-                    debug_assert!(node_ptr.as_mut().right.is_none());
-                    if let Some(mut parent_ptr) = node_ptr.as_mut().parent {
-                        if parent_ptr.as_mut().left == Some(node_ptr) {
-                            parent_ptr.as_mut().left = node_ptr.as_mut().left;
-                        } else {
-                            parent_ptr.as_mut().right = node_ptr.as_mut().left;
-                        }
-                    } else {
-                        self.root = node_ptr.as_mut().left;
-                    }
-                    if let Some(mut left_ptr) = node_ptr.as_mut().left {
-                        left_ptr.as_mut().parent = node_ptr.as_mut().parent;
-                    }
-                }
-                Node::destroy(node_ptr);
-            }
-            debug_assert!(self.get(key).is_none());
+        // Find node to-be-removed
+        if let Some(node_ptr) = self.find(key) {
             debug_assert!(self.len >= 1);
+            self.unlink_node(node_ptr);
+            unsafe { Node::destroy(node_ptr) };
             self.len -= 1;
+            debug_assert!(self.get(key).is_none());
             return true;
         }
         false
@@ -155,6 +97,68 @@ where
             }
         }
         Some((parent, link_ptr))
+    }
+
+    fn unlink_node(&mut self, mut node_ptr: NodePtr<K>) {
+        unsafe {
+            // Check if node to-unlink has right sub tree
+            if let Some(mut min_child_ptr) = node_ptr.as_mut().right {
+                // Find smallest child node in right sub tree
+                let mut min_child_parent_ptr = node_ptr;
+                while let Some(left_ptr) = min_child_ptr.as_mut().left {
+                    min_child_parent_ptr = min_child_ptr;
+                    min_child_ptr = left_ptr;
+                }
+
+                // Smallest child node is stem or leaf, unlink from tree
+                debug_assert!(min_child_ptr.as_mut().left.is_none());
+                if min_child_parent_ptr.as_mut().left == Some(min_child_ptr) {
+                    min_child_parent_ptr.as_mut().left = min_child_ptr.as_mut().right;
+                } else {
+                    min_child_parent_ptr.as_mut().right = min_child_ptr.as_mut().right;
+                }
+                if let Some(mut right_ptr) = min_child_ptr.as_mut().right {
+                    right_ptr.as_mut().parent = min_child_ptr.as_mut().parent;
+                }
+
+                // Replace node to-unlink by smallest child node
+                min_child_ptr.as_mut().left = node_ptr.as_mut().left;
+                if let Some(mut left_ptr) = node_ptr.as_mut().left {
+                    left_ptr.as_mut().parent = Some(min_child_ptr);
+                }
+
+                min_child_ptr.as_mut().right = node_ptr.as_mut().right;
+                if let Some(mut right_ptr) = node_ptr.as_mut().right {
+                    right_ptr.as_mut().parent = Some(min_child_ptr);
+                }
+
+                min_child_ptr.as_mut().parent = node_ptr.as_mut().parent;
+                if let Some(mut parent_ptr) = node_ptr.as_mut().parent {
+                    if parent_ptr.as_mut().left == Some(node_ptr) {
+                        parent_ptr.as_mut().left = Some(min_child_ptr);
+                    } else {
+                        parent_ptr.as_mut().right = Some(min_child_ptr);
+                    }
+                } else {
+                    self.root = Some(min_child_ptr);
+                }
+            } else {
+                // Node to-unlink is stem or leaf, unlink from tree.
+                debug_assert!(node_ptr.as_mut().right.is_none());
+                if let Some(mut parent_ptr) = node_ptr.as_mut().parent {
+                    if parent_ptr.as_mut().left == Some(node_ptr) {
+                        parent_ptr.as_mut().left = node_ptr.as_mut().left;
+                    } else {
+                        parent_ptr.as_mut().right = node_ptr.as_mut().left;
+                    }
+                } else {
+                    self.root = node_ptr.as_mut().left;
+                }
+                if let Some(mut left_ptr) = node_ptr.as_mut().left {
+                    left_ptr.as_mut().parent = node_ptr.as_mut().parent;
+                }
+            }
+        }
     }
 
     fn postorder<F: FnMut(NodePtr<K>)>(&self, f: F) {
@@ -244,10 +248,8 @@ where
         unsafe { NodePtr::new_unchecked(Box::into_raw(boxed)) }
     }
 
-    fn destroy(node_ptr: NodePtr<K>) {
-        unsafe {
-            Box::from_raw(node_ptr.as_ptr());
-        }
+    unsafe fn destroy(node_ptr: NodePtr<K>) {
+        Box::from_raw(node_ptr.as_ptr());
     }
 }
 
