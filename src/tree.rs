@@ -168,6 +168,7 @@ where
             if let Some(mut root_ptr) = self.root {
                 assert!(root_ptr.as_mut().parent.is_none());
             }
+            let mut len = 0;
             self.preorder(|mut node_ptr| {
                 if let Some(mut left_ptr) = node_ptr.as_mut().left {
                     assert!(left_ptr.as_mut().parent == Some(node_ptr));
@@ -175,7 +176,9 @@ where
                 if let Some(mut right_ptr) = node_ptr.as_mut().right {
                     assert!(right_ptr.as_mut().parent == Some(node_ptr));
                 }
+                len += 1;
             });
+            assert!(len == self.len);
         }
     }
 

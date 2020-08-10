@@ -9,9 +9,11 @@ mod tests {
     fn test_new() {
         let tree_i32 = Tree::<i32>::new();
         assert!(tree_i32.is_empty());
+        tree_i32.check_consistency();
 
         let tree_i8 = Tree::<i8>::new();
         assert!(tree_i8.is_empty());
+        tree_i8.check_consistency();
     }
 
     #[test]
@@ -98,12 +100,10 @@ mod tests {
         }
 
         values.shuffle(&mut rng);
-        for (idx, value) in values.iter().enumerate() {
-            assert!(tree.len() == values.len() - idx);
+        for value in values.iter() {
             assert!(tree.get(value).is_some());
             assert!(tree.remove(value));
             assert!(tree.get(value).is_none());
-            assert!(tree.len() == values.len() - idx - 1);
             tree.check_consistency();
         }
         assert!(tree.is_empty());
