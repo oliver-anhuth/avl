@@ -48,7 +48,7 @@ where
                 *link_ptr.as_mut() = Some(Node::create(parent, key));
             }
             self.num_nodes += 1;
-            self.recalculate(parent);
+            self.recalculate_until_root(parent);
             return true;
         }
         false
@@ -99,33 +99,33 @@ where
         }
     }
 
-    fn recalculate(&mut self, mut link: Link<K>) {
+    fn recalculate_until_root(&mut self, mut link: Link<K>) {
         while let Some(mut node_ptr) = link {
             unsafe {
                 node_ptr.as_mut().height = 0;
-                if let Some(mut left_ptr) = node_ptr.as_mut().left {
+                if let Some(mut left_ptr) = node_ptr.as_ref().left {
                     node_ptr.as_mut().height =
                         std::cmp::max(node_ptr.as_mut().height, left_ptr.as_mut().height + 1);
                 }
-                if let Some(mut right_ptr) = node_ptr.as_mut().right {
+                if let Some(mut right_ptr) = node_ptr.as_ref().right {
                     node_ptr.as_mut().height =
                         std::cmp::max(node_ptr.as_mut().height, right_ptr.as_mut().height + 1);
                 }
-                link = node_ptr.as_mut().parent;
+                link = node_ptr.as_ref().parent;
             }
         }
     }
 
     fn find(&self, key: &K) -> Link<K> {
         let mut current = self.root;
-        while let Some(mut node_ptr) = current {
+        while let Some(node_ptr) = current {
             unsafe {
-                if *key == node_ptr.as_mut().key {
+                if *key == node_ptr.as_ref().key {
                     break;
-                } else if *key < node_ptr.as_mut().key {
-                    current = node_ptr.as_mut().left;
+                } else if *key < node_ptr.as_ref().key {
+                    current = node_ptr.as_ref().left;
                 } else {
-                    current = node_ptr.as_mut().right;
+                    current = node_ptr.as_ref().right;
                 }
             }
         }
@@ -197,10 +197,12 @@ where
                     }
                 }
 
-                if node_ptr != min_child_parent_ptr {
-                    self.recalculate(Some(min_child_parent_ptr));
+                // Height of smallest child node's parent and its ancestors might have changed.
+                // Check for special case that it is identical with node to-unlink.
+                if min_child_parent_ptr != node_ptr {
+                    self.recalculate_until_root(Some(min_child_parent_ptr));
                 } else {
-                    self.recalculate(Some(min_child_ptr));
+                    self.recalculate_until_root(Some(min_child_ptr));
                 }
             } else {
                 // Node to-unlink is stem or leaf, unlink from tree.
@@ -213,7 +215,8 @@ where
                         } else {
                             parent_ptr.as_mut().right = node_ptr.as_mut().left
                         }
-                        self.recalculate(Some(parent_ptr));
+                        // Height of parent node and its ancestors might have changed
+                        self.recalculate_until_root(Some(parent_ptr));
                     }
                 }
                 if let Some(mut left_ptr) = node_ptr.as_mut().left {
