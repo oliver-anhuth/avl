@@ -47,7 +47,7 @@ where
         // Find node to-be-deleted
         if let Some(mut node_ptr) = self.find(key) {
             unsafe {
-                // Check if node to-be-delete has right sub tree
+                // Check if node to-be-deleted has right sub tree
                 if let Some(mut min_child_ptr) = node_ptr.as_mut().right {
                     // Find smallest child node in right sub tree
                     let mut min_child_parent_ptr = node_ptr;
@@ -67,7 +67,7 @@ where
                         right_ptr.as_mut().parent = min_child_ptr.as_mut().parent;
                     }
 
-                    // Replace node to-be-deleted by smallest child
+                    // Replace node to-be-deleted by smallest child node
                     min_child_ptr.as_mut().left = node_ptr.as_mut().left;
                     if let Some(mut left_ptr) = node_ptr.as_mut().left {
                         left_ptr.as_mut().parent = Some(min_child_ptr);
