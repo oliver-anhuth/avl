@@ -48,7 +48,7 @@ where
                 *link_ptr.as_mut() = Some(Node::create(parent, key));
             }
             self.num_nodes += 1;
-            self.recalculate_until_root(parent);
+            self.start_recalculate(parent);
             return true;
         }
         false
@@ -99,7 +99,7 @@ where
         }
     }
 
-    fn recalculate_until_root(&mut self, mut link: Link<K>) {
+    fn start_recalculate(&mut self, mut link: Link<K>) {
         while let Some(mut node_ptr) = link {
             unsafe {
                 node_ptr.as_mut().height = 0;
@@ -198,12 +198,13 @@ where
                 }
 
                 // Height of smallest child node's parent and its ancestors might have changed.
-                // Check for special case that it is identical with node to-unlink.
-                if min_child_parent_ptr != node_ptr {
-                    self.recalculate_until_root(Some(min_child_parent_ptr));
-                } else {
-                    self.recalculate_until_root(Some(min_child_ptr));
+                let mut recalculate_from = min_child_parent_ptr;
+                if recalculate_from == node_ptr {
+                    // Smallest child's parent is node to-unlink
+                    // and has been replaced by smallest child
+                    recalculate_from = min_child_ptr;
                 }
+                self.start_recalculate(Some(recalculate_from));
             } else {
                 // Node to-unlink is stem or leaf, unlink from tree.
                 debug_assert!(node_ptr.as_ref().right.is_none());
@@ -216,7 +217,7 @@ where
                             parent_ptr.as_mut().right = node_ptr.as_ref().left
                         }
                         // Height of parent node and its ancestors might have changed
-                        self.recalculate_until_root(Some(parent_ptr));
+                        self.start_recalculate(Some(parent_ptr));
                     }
                 }
                 if let Some(mut left_ptr) = node_ptr.as_ref().left {
