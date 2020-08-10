@@ -7,7 +7,7 @@ where
     K: PartialEq + PartialOrd,
 {
     root: Link<K>,
-    len: usize,
+    num_nodes: usize,
 }
 
 impl<K> Tree<K>
@@ -15,7 +15,10 @@ where
     K: PartialEq + PartialOrd,
 {
     pub fn new() -> Self {
-        Self { root: None, len: 0 }
+        Self {
+            root: None,
+            num_nodes: 0,
+        }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -23,13 +26,13 @@ where
     }
 
     pub fn len(&self) -> usize {
-        self.len
+        self.num_nodes
     }
 
     pub fn clear(&mut self) {
         self.postorder(|node_ptr| unsafe { Node::destroy(node_ptr) });
         self.root = None;
-        self.len = 0;
+        self.num_nodes = 0;
     }
 
     pub fn get(&self, key: &K) -> Option<&K> {
@@ -44,7 +47,7 @@ where
             unsafe {
                 *link_ptr.as_mut() = Some(Node::create(parent, key));
             }
-            self.len += 1;
+            self.num_nodes += 1;
             return true;
         }
         false
@@ -53,10 +56,10 @@ where
     pub fn remove(&mut self, key: &K) -> bool {
         // Find node to-be-removed
         if let Some(node_ptr) = self.find(key) {
-            debug_assert!(self.len >= 1);
+            debug_assert!(self.num_nodes >= 1);
             self.unlink_node(node_ptr);
             unsafe { Node::destroy(node_ptr) };
-            self.len -= 1;
+            self.num_nodes -= 1;
             debug_assert!(self.get(key).is_none());
             return true;
         }
@@ -165,20 +168,26 @@ where
 
     pub fn check_consistency(&self) {
         unsafe {
-            if let Some(mut root_ptr) = self.root {
-                assert!(root_ptr.as_mut().parent.is_none());
+            // Check root node
+            if let Some(mut root_node_ptr) = self.root {
+                assert!(root_node_ptr.as_mut().parent.is_none());
             }
-            let mut len = 0;
+
+            let mut num_nodes = 0;
             self.preorder(|mut node_ptr| {
+                // Check link for left child node
                 if let Some(mut left_ptr) = node_ptr.as_mut().left {
                     assert!(left_ptr.as_mut().parent == Some(node_ptr));
                 }
+
+                // Check link for right child node
                 if let Some(mut right_ptr) = node_ptr.as_mut().right {
                     assert!(right_ptr.as_mut().parent == Some(node_ptr));
                 }
-                len += 1;
+
+                num_nodes += 1;
             });
-            assert!(len == self.len);
+            assert!(num_nodes == self.num_nodes);
         }
     }
 
