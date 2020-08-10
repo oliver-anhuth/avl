@@ -48,6 +48,7 @@ where
                 *link_ptr.as_mut() = Some(Node::create(parent, key));
             }
             self.num_nodes += 1;
+            self.recalculate(parent);
             return true;
         }
         false
@@ -64,6 +65,55 @@ where
             return true;
         }
         false
+    }
+
+    pub fn check_consistency(&self) {
+        unsafe {
+            // Check root link
+            if let Some(mut root_node_ptr) = self.root {
+                assert!(root_node_ptr.as_mut().parent.is_none());
+            }
+
+            // Check tree nodes
+            let mut num_nodes = 0;
+            self.preorder(|mut node_ptr| {
+                let mut height = 0;
+
+                // Check link for left child node
+                if let Some(mut left_ptr) = node_ptr.as_mut().left {
+                    assert!(left_ptr.as_mut().parent == Some(node_ptr));
+                    height = std::cmp::max(height, left_ptr.as_mut().height + 1);
+                }
+
+                // Check link for right child node
+                if let Some(mut right_ptr) = node_ptr.as_mut().right {
+                    assert!(right_ptr.as_mut().parent == Some(node_ptr));
+                    height = std::cmp::max(height, right_ptr.as_mut().height + 1);
+                }
+
+                assert_eq!(node_ptr.as_mut().height, height);
+
+                num_nodes += 1;
+            });
+            assert_eq!(num_nodes, self.num_nodes);
+        }
+    }
+
+    fn recalculate(&mut self, mut link: Link<K>) {
+        while let Some(mut node_ptr) = link {
+            unsafe {
+                node_ptr.as_mut().height = 0;
+                if let Some(mut left_ptr) = node_ptr.as_mut().left {
+                    node_ptr.as_mut().height =
+                        std::cmp::max(node_ptr.as_mut().height, left_ptr.as_mut().height + 1);
+                }
+                if let Some(mut right_ptr) = node_ptr.as_mut().right {
+                    node_ptr.as_mut().height =
+                        std::cmp::max(node_ptr.as_mut().height, right_ptr.as_mut().height + 1);
+                }
+                link = node_ptr.as_mut().parent;
+            }
+        }
     }
 
     fn find(&self, key: &K) -> Link<K> {
@@ -146,6 +196,12 @@ where
                         }
                     }
                 }
+
+                if node_ptr != min_child_parent_ptr {
+                    self.recalculate(Some(min_child_parent_ptr));
+                } else {
+                    self.recalculate(Some(min_child_ptr));
+                }
             } else {
                 // Node to-unlink is stem or leaf, unlink from tree.
                 debug_assert!(node_ptr.as_mut().right.is_none());
@@ -157,37 +213,13 @@ where
                         } else {
                             parent_ptr.as_mut().right = node_ptr.as_mut().left
                         }
+                        self.recalculate(Some(parent_ptr));
                     }
                 }
                 if let Some(mut left_ptr) = node_ptr.as_mut().left {
                     left_ptr.as_mut().parent = node_ptr.as_mut().parent;
                 }
             }
-        }
-    }
-
-    pub fn check_consistency(&self) {
-        unsafe {
-            // Check root node
-            if let Some(mut root_node_ptr) = self.root {
-                assert!(root_node_ptr.as_mut().parent.is_none());
-            }
-
-            let mut num_nodes = 0;
-            self.preorder(|mut node_ptr| {
-                // Check link for left child node
-                if let Some(mut left_ptr) = node_ptr.as_mut().left {
-                    assert!(left_ptr.as_mut().parent == Some(node_ptr));
-                }
-
-                // Check link for right child node
-                if let Some(mut right_ptr) = node_ptr.as_mut().right {
-                    assert!(right_ptr.as_mut().parent == Some(node_ptr));
-                }
-
-                num_nodes += 1;
-            });
-            assert!(num_nodes == self.num_nodes);
         }
     }
 
@@ -266,6 +298,7 @@ struct Node<K> {
     left: Link<K>,
     right: Link<K>,
     parent: Link<K>,
+    height: usize,
 }
 
 impl<K> Node<K>
@@ -278,6 +311,7 @@ where
             parent,
             left: None,
             right: None,
+            height: 0,
         });
         unsafe { NodePtr::new_unchecked(Box::into_raw(boxed)) }
     }
