@@ -133,26 +133,28 @@ where
                 }
 
                 min_child_ptr.as_mut().parent = node_ptr.as_mut().parent;
-                if let Some(mut parent_ptr) = node_ptr.as_mut().parent {
-                    if parent_ptr.as_mut().left == Some(node_ptr) {
-                        parent_ptr.as_mut().left = Some(min_child_ptr);
-                    } else {
-                        parent_ptr.as_mut().right = Some(min_child_ptr);
+                match node_ptr.as_mut().parent {
+                    None => self.root = Some(min_child_ptr),
+                    Some(mut parent_ptr) => {
+                        if parent_ptr.as_mut().left == Some(node_ptr) {
+                            parent_ptr.as_mut().left = Some(min_child_ptr);
+                        } else {
+                            parent_ptr.as_mut().right = Some(min_child_ptr);
+                        }
                     }
-                } else {
-                    self.root = Some(min_child_ptr);
                 }
             } else {
                 // Node to-unlink is stem or leaf, unlink from tree.
                 debug_assert!(node_ptr.as_mut().right.is_none());
-                if let Some(mut parent_ptr) = node_ptr.as_mut().parent {
-                    if parent_ptr.as_mut().left == Some(node_ptr) {
-                        parent_ptr.as_mut().left = node_ptr.as_mut().left;
-                    } else {
-                        parent_ptr.as_mut().right = node_ptr.as_mut().left;
+                match node_ptr.as_mut().parent {
+                    None => self.root = node_ptr.as_mut().left,
+                    Some(mut parent_ptr) => {
+                        if parent_ptr.as_mut().left == Some(node_ptr) {
+                            parent_ptr.as_mut().left = node_ptr.as_mut().left;
+                        } else {
+                            parent_ptr.as_mut().right = node_ptr.as_mut().left
+                        }
                     }
-                } else {
-                    self.root = node_ptr.as_mut().left;
                 }
                 if let Some(mut left_ptr) = node_ptr.as_mut().left {
                     left_ptr.as_mut().parent = node_ptr.as_mut().parent;
