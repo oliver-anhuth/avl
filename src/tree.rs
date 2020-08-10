@@ -70,28 +70,28 @@ where
     pub fn check_consistency(&self) {
         unsafe {
             // Check root link
-            if let Some(mut root_node_ptr) = self.root {
-                assert!(root_node_ptr.as_mut().parent.is_none());
+            if let Some(root_node_ptr) = self.root {
+                assert!(root_node_ptr.as_ref().parent.is_none());
             }
 
             // Check tree nodes
             let mut num_nodes = 0;
-            self.preorder(|mut node_ptr| {
+            self.preorder(|node_ptr| {
                 let mut height = 0;
 
                 // Check link for left child node
-                if let Some(mut left_ptr) = node_ptr.as_mut().left {
-                    assert!(left_ptr.as_mut().parent == Some(node_ptr));
-                    height = std::cmp::max(height, left_ptr.as_mut().height + 1);
+                if let Some(left_ptr) = node_ptr.as_ref().left {
+                    assert!(left_ptr.as_ref().parent == Some(node_ptr));
+                    height = std::cmp::max(height, left_ptr.as_ref().height + 1);
                 }
 
                 // Check link for right child node
-                if let Some(mut right_ptr) = node_ptr.as_mut().right {
-                    assert!(right_ptr.as_mut().parent == Some(node_ptr));
-                    height = std::cmp::max(height, right_ptr.as_mut().height + 1);
+                if let Some(right_ptr) = node_ptr.as_ref().right {
+                    assert!(right_ptr.as_ref().parent == Some(node_ptr));
+                    height = std::cmp::max(height, right_ptr.as_ref().height + 1);
                 }
 
-                assert_eq!(node_ptr.as_mut().height, height);
+                assert_eq!(node_ptr.as_ref().height, height);
 
                 num_nodes += 1;
             });
@@ -103,13 +103,13 @@ where
         while let Some(mut node_ptr) = link {
             unsafe {
                 node_ptr.as_mut().height = 0;
-                if let Some(mut left_ptr) = node_ptr.as_ref().left {
+                if let Some(left_ptr) = node_ptr.as_ref().left {
                     node_ptr.as_mut().height =
-                        std::cmp::max(node_ptr.as_mut().height, left_ptr.as_mut().height + 1);
+                        std::cmp::max(node_ptr.as_ref().height, left_ptr.as_ref().height + 1);
                 }
-                if let Some(mut right_ptr) = node_ptr.as_ref().right {
+                if let Some(right_ptr) = node_ptr.as_ref().right {
                     node_ptr.as_mut().height =
-                        std::cmp::max(node_ptr.as_mut().height, right_ptr.as_mut().height + 1);
+                        std::cmp::max(node_ptr.as_ref().height, right_ptr.as_ref().height + 1);
                 }
                 link = node_ptr.as_ref().parent;
             }
@@ -136,12 +136,12 @@ where
         let mut parent: Link<K> = None;
         let mut link_ptr: LinkPtr<K> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
         unsafe {
-            while let Some(mut node_ptr) = link_ptr.as_mut() {
-                if *key == node_ptr.as_mut().key {
+            while let Some(mut node_ptr) = link_ptr.as_ref() {
+                if *key == node_ptr.as_ref().key {
                     return None;
                 } else {
-                    parent = *link_ptr.as_mut();
-                    if *key < node_ptr.as_mut().key {
+                    parent = *link_ptr.as_ref();
+                    if *key < node_ptr.as_ref().key {
                         link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().left);
                     } else {
                         link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().right);
@@ -152,44 +152,44 @@ where
         Some((parent, link_ptr))
     }
 
-    fn unlink_node(&mut self, mut node_ptr: NodePtr<K>) {
+    fn unlink_node(&mut self, node_ptr: NodePtr<K>) {
         unsafe {
             // Check if node to-unlink has right sub tree
-            if let Some(mut min_child_ptr) = node_ptr.as_mut().right {
+            if let Some(mut min_child_ptr) = node_ptr.as_ref().right {
                 // Find smallest child node in right sub tree
                 let mut min_child_parent_ptr = node_ptr;
-                while let Some(left_ptr) = min_child_ptr.as_mut().left {
+                while let Some(left_ptr) = min_child_ptr.as_ref().left {
                     min_child_parent_ptr = min_child_ptr;
                     min_child_ptr = left_ptr;
                 }
 
                 // Smallest child node is stem or leaf, unlink from tree
-                debug_assert!(min_child_ptr.as_mut().left.is_none());
-                if min_child_parent_ptr.as_mut().left == Some(min_child_ptr) {
-                    min_child_parent_ptr.as_mut().left = min_child_ptr.as_mut().right;
+                debug_assert!(min_child_ptr.as_ref().left.is_none());
+                if min_child_parent_ptr.as_ref().left == Some(min_child_ptr) {
+                    min_child_parent_ptr.as_mut().left = min_child_ptr.as_ref().right;
                 } else {
-                    min_child_parent_ptr.as_mut().right = min_child_ptr.as_mut().right;
+                    min_child_parent_ptr.as_mut().right = min_child_ptr.as_ref().right;
                 }
-                if let Some(mut right_ptr) = min_child_ptr.as_mut().right {
-                    right_ptr.as_mut().parent = min_child_ptr.as_mut().parent;
+                if let Some(mut right_ptr) = min_child_ptr.as_ref().right {
+                    right_ptr.as_mut().parent = min_child_ptr.as_ref().parent;
                 }
 
                 // Replace node to-unlink by smallest child node
-                min_child_ptr.as_mut().left = node_ptr.as_mut().left;
-                if let Some(mut left_ptr) = node_ptr.as_mut().left {
+                min_child_ptr.as_mut().left = node_ptr.as_ref().left;
+                if let Some(mut left_ptr) = node_ptr.as_ref().left {
                     left_ptr.as_mut().parent = Some(min_child_ptr);
                 }
 
-                min_child_ptr.as_mut().right = node_ptr.as_mut().right;
-                if let Some(mut right_ptr) = node_ptr.as_mut().right {
+                min_child_ptr.as_mut().right = node_ptr.as_ref().right;
+                if let Some(mut right_ptr) = node_ptr.as_ref().right {
                     right_ptr.as_mut().parent = Some(min_child_ptr);
                 }
 
-                min_child_ptr.as_mut().parent = node_ptr.as_mut().parent;
-                match node_ptr.as_mut().parent {
+                min_child_ptr.as_mut().parent = node_ptr.as_ref().parent;
+                match node_ptr.as_ref().parent {
                     None => self.root = Some(min_child_ptr),
                     Some(mut parent_ptr) => {
-                        if parent_ptr.as_mut().left == Some(node_ptr) {
+                        if parent_ptr.as_ref().left == Some(node_ptr) {
                             parent_ptr.as_mut().left = Some(min_child_ptr);
                         } else {
                             parent_ptr.as_mut().right = Some(min_child_ptr);
@@ -206,21 +206,21 @@ where
                 }
             } else {
                 // Node to-unlink is stem or leaf, unlink from tree.
-                debug_assert!(node_ptr.as_mut().right.is_none());
-                match node_ptr.as_mut().parent {
-                    None => self.root = node_ptr.as_mut().left,
+                debug_assert!(node_ptr.as_ref().right.is_none());
+                match node_ptr.as_ref().parent {
+                    None => self.root = node_ptr.as_ref().left,
                     Some(mut parent_ptr) => {
-                        if parent_ptr.as_mut().left == Some(node_ptr) {
-                            parent_ptr.as_mut().left = node_ptr.as_mut().left;
+                        if parent_ptr.as_ref().left == Some(node_ptr) {
+                            parent_ptr.as_mut().left = node_ptr.as_ref().left;
                         } else {
-                            parent_ptr.as_mut().right = node_ptr.as_mut().left
+                            parent_ptr.as_mut().right = node_ptr.as_ref().left
                         }
                         // Height of parent node and its ancestors might have changed
                         self.recalculate_until_root(Some(parent_ptr));
                     }
                 }
-                if let Some(mut left_ptr) = node_ptr.as_mut().left {
-                    left_ptr.as_mut().parent = node_ptr.as_mut().parent;
+                if let Some(mut left_ptr) = node_ptr.as_ref().left {
+                    left_ptr.as_mut().parent = node_ptr.as_ref().parent;
                 }
             }
         }
@@ -246,7 +246,7 @@ where
                 match dir {
                     Direction::FromParent => {
                         preorder(node_ptr);
-                        if let Some(left_ptr) = unsafe { node_ptr.as_mut().left } {
+                        if let Some(left_ptr) = unsafe { node_ptr.as_ref().left } {
                             node_ptr = left_ptr;
                         } else {
                             dir = Direction::FromLeft;
@@ -254,7 +254,7 @@ where
                     }
                     Direction::FromLeft => {
                         inorder(node_ptr);
-                        if let Some(right_ptr) = unsafe { node_ptr.as_mut().right } {
+                        if let Some(right_ptr) = unsafe { node_ptr.as_ref().right } {
                             node_ptr = right_ptr;
                             dir = Direction::FromParent;
                         } else {
@@ -264,8 +264,8 @@ where
                     Direction::FromRight => {
                         // Post order traversal is used for node deletion,
                         // so make sure not to use node pointer after postorder call.
-                        if let Some(mut parent_ptr) = unsafe { node_ptr.as_mut().parent } {
-                            if Some(node_ptr) == unsafe { parent_ptr.as_mut().left } {
+                        if let Some(parent_ptr) = unsafe { node_ptr.as_ref().parent } {
+                            if Some(node_ptr) == unsafe { parent_ptr.as_ref().left } {
                                 dir = Direction::FromLeft;
                             } else {
                                 dir = Direction::FromRight;
