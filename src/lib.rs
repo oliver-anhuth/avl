@@ -25,6 +25,7 @@ mod tests {
         let mut tree = Tree::new();
         for value in values.iter() {
             assert!(tree.insert(*value));
+            tree.check_consistency();
         }
         assert!(tree.len() == values.len());
 
@@ -78,6 +79,9 @@ mod tests {
         for value in values.iter() {
             assert!(tree.insert(*value));
         }
+        assert!(!tree.is_empty());
+        assert!(tree.len() == values.len());
+        tree.check_consistency();
     }
 
     #[test]
@@ -100,6 +104,7 @@ mod tests {
             assert!(tree.remove(value));
             assert!(tree.get(value).is_none());
             assert!(tree.len() == values.len() - idx - 1);
+            tree.check_consistency();
         }
         assert!(tree.is_empty());
         assert!(tree.len() == 0);

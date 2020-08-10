@@ -163,6 +163,26 @@ where
         }
     }
 
+    pub fn check_consistency(&self) {
+        unsafe {
+            if let Some(mut root_ptr) = self.root {
+                assert!(root_ptr.as_mut().parent.is_none());
+            }
+            self.preorder(|mut node_ptr| {
+                if let Some(mut left_ptr) = node_ptr.as_mut().left {
+                    assert!(left_ptr.as_mut().parent == Some(node_ptr));
+                }
+                if let Some(mut right_ptr) = node_ptr.as_mut().right {
+                    assert!(right_ptr.as_mut().parent == Some(node_ptr));
+                }
+            });
+        }
+    }
+
+    fn preorder<F: FnMut(NodePtr<K>)>(&self, f: F) {
+        self.traverse(f, |_| {}, |_| {});
+    }
+
     fn postorder<F: FnMut(NodePtr<K>)>(&self, f: F) {
         self.traverse(|_| {}, |_| {}, f);
     }
