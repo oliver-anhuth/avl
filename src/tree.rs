@@ -7,6 +7,7 @@ where
     K: PartialEq + PartialOrd,
 {
     root: Link<K>,
+    len: usize,
 }
 
 impl<K> Tree<K>
@@ -14,16 +15,21 @@ where
     K: PartialEq + PartialOrd,
 {
     pub fn new() -> Self {
-        Self { root: None }
+        Self { root: None, len: 0 }
     }
 
     pub fn is_empty(&self) -> bool {
         self.root.is_none()
     }
 
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
     pub fn clear(&mut self) {
         self.postorder(|node_ptr| Node::destroy(node_ptr));
         self.root = None;
+        self.len = 0;
     }
 
     pub fn get(&self, key: &K) -> Option<&K> {
@@ -38,6 +44,7 @@ where
             unsafe {
                 *link_ptr.as_mut() = Some(Node::create(parent, key));
             }
+            self.len += 1;
             return true;
         }
         false
@@ -107,6 +114,8 @@ where
                 Node::destroy(node_ptr);
             }
             debug_assert!(self.get(key).is_none());
+            debug_assert!(self.len >= 1);
+            self.len -= 1;
             return true;
         }
         false

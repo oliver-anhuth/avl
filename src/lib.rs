@@ -26,9 +26,12 @@ mod tests {
         for value in values.iter() {
             assert!(tree.insert(*value));
         }
+        assert!(tree.len() == values.len());
+
         for value in values.iter() {
             assert!(!tree.insert(*value));
         }
+        assert!(tree.len() == values.len());
     }
 
     #[test]
@@ -42,8 +45,9 @@ mod tests {
         let mut tree = Tree::new();
         assert!(tree.get(&42).is_none());
         for value in values.iter() {
-            assert!(tree.insert(*value));
+            tree.insert(*value);
         }
+
         for value in values.iter() {
             let got = tree.get(value);
             assert!(got.is_some());
@@ -62,11 +66,15 @@ mod tests {
 
         let mut tree = Tree::new();
         for value in values.iter() {
-            assert!(tree.insert(*value));
+            tree.insert(*value);
         }
         assert!(!tree.is_empty());
+        assert!(tree.len() == values.len());
+
         tree.clear();
         assert!(tree.is_empty());
+        assert!(tree.len() == 0);
+
         for value in values.iter() {
             assert!(tree.insert(*value));
         }
@@ -82,15 +90,18 @@ mod tests {
 
         let mut tree = Tree::new();
         for value in values.iter() {
-            assert!(tree.insert(*value));
+            tree.insert(*value);
         }
 
         values.shuffle(&mut rng);
-        for value in values.iter() {
+        for (idx, value) in values.iter().enumerate() {
+            assert!(tree.len() == values.len() - idx);
             assert!(tree.get(value).is_some());
             assert!(tree.remove(value));
             assert!(tree.get(value).is_none());
+            assert!(tree.len() == values.len() - idx - 1);
         }
-        assert!(tree.is_empty())
+        assert!(tree.is_empty());
+        assert!(tree.len() == 0);
     }
 }
