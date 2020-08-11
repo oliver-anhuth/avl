@@ -129,6 +129,29 @@ where
         }
     }
 
+    fn rebalance(&mut self, mut link: Link<K>) {
+        while let Some(node_ptr) = link {
+            unsafe {
+                let parent = node_ptr.as_ref().parent;
+
+                let left_tree_height = match node_ptr.as_ref().left {
+                    None => 0,
+                    Some(left_ptr) => left_ptr.as_ref().height,
+                };
+                let right_tree_height = match node_ptr.as_ref().right {
+                    None => 0,
+                    Some(right_ptr) => right_ptr.as_ref().height,
+                };
+
+                if left_tree_height > right_tree_height + 1 {
+                } else if right_tree_height > left_tree_height + 1 {
+                }
+
+                link = parent;
+            }
+        }
+    }
+
     fn adjust_height(mut node_ptr: NodePtr<K>) {
         unsafe {
             node_ptr.as_mut().height = cmp::max(
