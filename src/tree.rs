@@ -1,5 +1,6 @@
 #![allow(dead_code, unused_variables, unused_must_use)]
 
+use std::cmp;
 use std::ptr::NonNull;
 
 pub struct Tree<K>
@@ -82,13 +83,13 @@ where
                 // Check link for left child node
                 if let Some(left_ptr) = node_ptr.as_ref().left {
                     assert!(left_ptr.as_ref().parent == Some(node_ptr));
-                    height = std::cmp::max(height, left_ptr.as_ref().height + 1);
+                    height = cmp::max(height, left_ptr.as_ref().height + 1);
                 }
 
                 // Check link for right child node
                 if let Some(right_ptr) = node_ptr.as_ref().right {
                     assert!(right_ptr.as_ref().parent == Some(node_ptr));
-                    height = std::cmp::max(height, right_ptr.as_ref().height + 1);
+                    height = cmp::max(height, right_ptr.as_ref().height + 1);
                 }
 
                 assert_eq!(node_ptr.as_ref().height, height);
@@ -109,7 +110,6 @@ where
     }
 
     fn adjust_height(mut node_ptr: NodePtr<K>) {
-        use std::cmp;
         unsafe {
             node_ptr.as_mut().height = cmp::max(
                 match node_ptr.as_ref().left {
