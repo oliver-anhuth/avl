@@ -68,6 +68,18 @@ where
         false
     }
 
+    pub fn test_left_rotation(&mut self) {
+        if let Some(node_ptr) = self.root {
+            self.rotate_left(node_ptr);
+        }
+    }
+
+    pub fn test_right_rotation(&mut self) {
+        if let Some(node_ptr) = self.root {
+            self.rotate_right(node_ptr);
+        }
+    }
+
     pub fn check_consistency(&self) {
         unsafe {
             // Check root link
@@ -230,6 +242,64 @@ where
                         self.start_recalculate(Some(parent_ptr));
                     }
                 }
+            }
+        }
+    }
+
+    fn rotate_left(&mut self, mut node_ptr: NodePtr<K>) {
+        unsafe {
+            if let Some(mut right_ptr) = node_ptr.as_ref().right {
+                node_ptr.as_mut().right = right_ptr.as_ref().left;
+                if let Some(mut right_left_ptr) = right_ptr.as_mut().left {
+                    right_left_ptr.as_mut().parent = Some(node_ptr);
+                }
+
+                right_ptr.as_mut().parent = node_ptr.as_ref().parent;
+                match node_ptr.as_ref().parent {
+                    None => self.root = Some(right_ptr),
+                    Some(mut parent_ptr) => {
+                        if parent_ptr.as_ref().left == Some(node_ptr) {
+                            parent_ptr.as_mut().left = Some(right_ptr);
+                        } else {
+                            parent_ptr.as_mut().right = Some(right_ptr);
+                        }
+                    }
+                }
+
+                right_ptr.as_mut().left = Some(node_ptr);
+                node_ptr.as_mut().parent = Some(right_ptr);
+
+                Self::adjust_height(node_ptr);
+                Self::adjust_height(right_ptr);
+            }
+        }
+    }
+
+    fn rotate_right(&mut self, mut node_ptr: NodePtr<K>) {
+        unsafe {
+            if let Some(mut left_ptr) = node_ptr.as_ref().left {
+                node_ptr.as_mut().left = left_ptr.as_ref().right;
+                if let Some(mut right_ptr) = left_ptr.as_ref().right {
+                    right_ptr.as_mut().parent = Some(node_ptr);
+                }
+
+                left_ptr.as_mut().parent = node_ptr.as_ref().parent;
+                match node_ptr.as_ref().parent {
+                    None => self.root = Some(left_ptr),
+                    Some(mut parent_ptr) => {
+                        if parent_ptr.as_ref().left == Some(node_ptr) {
+                            parent_ptr.as_mut().left = Some(left_ptr);
+                        } else {
+                            parent_ptr.as_mut().right = Some(left_ptr);
+                        }
+                    }
+                }
+
+                left_ptr.as_mut().right = Some(node_ptr);
+                node_ptr.as_mut().parent = Some(left_ptr);
+
+                Self::adjust_height(node_ptr);
+                Self::adjust_height(left_ptr);
             }
         }
     }
