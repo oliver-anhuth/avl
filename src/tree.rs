@@ -100,19 +100,27 @@ where
     }
 
     fn start_recalculate(&mut self, mut link: Link<K>) {
-        while let Some(mut node_ptr) = link {
+        while let Some(node_ptr) = link {
             unsafe {
-                node_ptr.as_mut().height = 0;
-                if let Some(left_ptr) = node_ptr.as_ref().left {
-                    node_ptr.as_mut().height =
-                        std::cmp::max(node_ptr.as_ref().height, left_ptr.as_ref().height + 1);
-                }
-                if let Some(right_ptr) = node_ptr.as_ref().right {
-                    node_ptr.as_mut().height =
-                        std::cmp::max(node_ptr.as_ref().height, right_ptr.as_ref().height + 1);
-                }
+                Self::adjust_height(node_ptr);
                 link = node_ptr.as_ref().parent;
             }
+        }
+    }
+
+    fn adjust_height(mut node_ptr: NodePtr<K>) {
+        use std::cmp;
+        unsafe {
+            node_ptr.as_mut().height = cmp::max(
+                match node_ptr.as_ref().left {
+                    None => 0,
+                    Some(left_ptr) => left_ptr.as_ref().height + 1,
+                },
+                match node_ptr.as_ref().right {
+                    None => 0,
+                    Some(right_ptr) => right_ptr.as_ref().height + 1,
+                },
+            );
         }
     }
 
