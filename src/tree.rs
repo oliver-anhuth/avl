@@ -174,7 +174,7 @@ where
                     right_ptr.as_mut().parent = min_child_ptr.as_ref().parent;
                 }
 
-                // Replace node to-unlink by smallest child node
+                // Replace node to-unlink by smallest child node (up to 6 links)
                 min_child_ptr.as_mut().left = node_ptr.as_ref().left;
                 if let Some(mut left_ptr) = node_ptr.as_ref().left {
                     left_ptr.as_mut().parent = Some(min_child_ptr);
@@ -197,17 +197,19 @@ where
                     }
                 }
 
-                // Height of smallest child node's parent and its ancestors might have changed.
+                // Parent of smallest child node might be out of balance now
                 let mut recalculate_from = min_child_parent_ptr;
                 if recalculate_from == node_ptr {
-                    // Smallest child's parent is node to-unlink
-                    // and has been replaced by smallest child
+                    // Parent is node to-unlink and has been replaced by smallest child
                     recalculate_from = min_child_ptr;
                 }
                 self.start_recalculate(Some(recalculate_from));
             } else {
                 // Node to-unlink is stem or leaf, unlink from tree.
                 debug_assert!(node_ptr.as_ref().right.is_none());
+                if let Some(mut left_ptr) = node_ptr.as_ref().left {
+                    left_ptr.as_mut().parent = node_ptr.as_ref().parent;
+                }
                 match node_ptr.as_ref().parent {
                     None => self.root = node_ptr.as_ref().left,
                     Some(mut parent_ptr) => {
@@ -216,12 +218,9 @@ where
                         } else {
                             parent_ptr.as_mut().right = node_ptr.as_ref().left
                         }
-                        // Height of parent node and its ancestors might have changed
+                        // Parent node might be out of balance now
                         self.start_recalculate(Some(parent_ptr));
                     }
-                }
-                if let Some(mut left_ptr) = node_ptr.as_ref().left {
-                    left_ptr.as_mut().parent = node_ptr.as_ref().parent;
                 }
             }
         }
