@@ -70,12 +70,20 @@ where
 
     pub fn test_left_rotation(&mut self) {
         if let Some(node_ptr) = self.root {
+            if let Some(right_ptr) = unsafe { node_ptr.as_ref().right } {
+                self.rotate_left(right_ptr);
+                Self::adjust_height(right_ptr);
+            }
             self.rotate_left(node_ptr);
         }
     }
 
     pub fn test_right_rotation(&mut self) {
         if let Some(node_ptr) = self.root {
+            if let Some(left_ptr) = unsafe { node_ptr.as_ref().left } {
+                self.rotate_right(left_ptr);
+                Self::adjust_height(left_ptr);
+            }
             self.rotate_right(node_ptr);
         }
     }
