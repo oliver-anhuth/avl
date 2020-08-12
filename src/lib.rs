@@ -5,7 +5,8 @@ pub use tree::Tree;
 mod tests {
     use super::Tree;
 
-    const N: i32 = 1000;
+    const N: i32 = 1_000;
+    const LARGE_N: i32 = 10_000_000;
 
     #[test]
     fn test_new() {
@@ -16,6 +17,10 @@ mod tests {
         let tree_i8 = Tree::<i8>::new();
         assert!(tree_i8.is_empty());
         tree_i8.check_consistency();
+
+        let tree_string = Tree::<String>::new();
+        assert!(tree_string.is_empty());
+        tree_string.check_consistency();
     }
 
     #[test]
@@ -23,7 +28,9 @@ mod tests {
         use rand::{rngs::StdRng, Rng, SeedableRng};
 
         let mut rng = StdRng::seed_from_u64(0);
-        let values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
+        let mut values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
+        values.sort();
+        values.dedup();
 
         let mut tree = Tree::new();
         for value in values.iter() {
@@ -36,6 +43,20 @@ mod tests {
             assert!(!tree.insert(*value));
         }
         assert!(tree.len() == values.len());
+    }
+
+    #[test]
+    #[ignore]
+    fn test_insert_large() {
+        use rand::{rngs::StdRng, Rng, SeedableRng};
+
+        let mut rng = StdRng::seed_from_u64(0);
+
+        let mut tree = Tree::new();
+        for value in (0..LARGE_N).map(|_| rng.gen::<i32>()) {
+            tree.insert(value);
+        }
+        tree.check_consistency();
     }
 
     #[test]
@@ -98,7 +119,9 @@ mod tests {
         use rand::{rngs::StdRng, Rng, SeedableRng};
 
         let mut rng = StdRng::seed_from_u64(0);
-        let values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
+        let mut values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
+        values.sort();
+        values.dedup();
 
         let mut tree = Tree::new();
         for value in values.iter() {
@@ -125,6 +148,8 @@ mod tests {
 
         let mut rng = StdRng::seed_from_u64(0);
         let mut values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
+        values.sort();
+        values.dedup();
 
         let mut tree = Tree::new();
         for value in values.iter() {
