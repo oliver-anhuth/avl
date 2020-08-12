@@ -226,17 +226,21 @@ where
         }
     }
 
-    unsafe fn left_height(node_ptr: NodePtr<K>) -> usize {
-        match node_ptr.as_ref().left {
-            None => 0,
-            Some(left_ptr) => left_ptr.as_ref().height,
+    fn left_height(node_ptr: NodePtr<K>) -> usize {
+        unsafe {
+            match node_ptr.as_ref().left {
+                None => 0,
+                Some(left_ptr) => left_ptr.as_ref().height,
+            }
         }
     }
 
-    unsafe fn right_height(node_ptr: NodePtr<K>) -> usize {
-        match node_ptr.as_ref().right {
-            None => 0,
-            Some(right_ptr) => right_ptr.as_ref().height,
+    fn right_height(node_ptr: NodePtr<K>) -> usize {
+        unsafe {
+            match node_ptr.as_ref().right {
+                None => 0,
+                Some(right_ptr) => right_ptr.as_ref().height,
+            }
         }
     }
 
@@ -313,6 +317,7 @@ where
         }
     }
 
+    /// Rebalance nodes starting from given position up to the root node.
     fn rebalance(&mut self, mut link: Link<K>) {
         while let Some(node_ptr) = link {
             unsafe {
