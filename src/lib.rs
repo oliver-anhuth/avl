@@ -5,6 +5,8 @@ pub use tree::Tree;
 mod tests {
     use super::Tree;
 
+    const N: i32 = 1000;
+
     #[test]
     fn test_new() {
         let tree_i32 = Tree::<i32>::new();
@@ -18,9 +20,42 @@ mod tests {
 
     #[test]
     fn test_insert() {
+        use rand::{rngs::StdRng, Rng, SeedableRng};
+
+        let mut rng = StdRng::seed_from_u64(0);
+        let values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
+
+        let mut tree = Tree::new();
+        for value in values.iter() {
+            assert!(tree.insert(*value));
+            tree.check_consistency();
+        }
+        assert!(tree.len() == values.len());
+
+        for value in values.iter() {
+            assert!(!tree.insert(*value));
+        }
+        assert!(tree.len() == values.len());
+    }
+
+    #[test]
+    fn test_insert_sorted_range() {
+        let values: Vec<i32> = (0..N).collect();
+        let mut tree = Tree::new();
+        for value in values.iter() {
+            assert!(tree.insert(*value));
+            tree.check_consistency();
+        }
+        assert!(tree.len() == values.len());
+        assert!(tree.height() > 0);
+        assert!(tree.height() < values.len() / 2);
+    }
+
+    #[test]
+    fn test_insert_shuffled_range() {
         use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 
-        let mut values: Vec<i32> = (0..1000).collect();
+        let mut values: Vec<i32> = (0..N).collect();
         let mut rng = StdRng::seed_from_u64(0);
         values.shuffle(&mut rng);
 
@@ -38,25 +73,11 @@ mod tests {
     }
 
     #[test]
-    fn test_insert_sorted() {
-        let values: Vec<i32> = (0..1000).collect();
-        let mut tree = Tree::new();
-        for value in values.iter() {
-            assert!(tree.insert(*value));
-            tree.check_consistency();
-        }
-        assert!(tree.len() == values.len());
-        assert!(tree.height() > 0);
-        assert!(tree.height() < values.len() / 2);
-    }
-
-    #[test]
     fn test_get() {
-        use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
+        use rand::{rngs::StdRng, Rng, SeedableRng};
 
-        let mut values: Vec<i32> = (0..1000).collect();
         let mut rng = StdRng::seed_from_u64(0);
-        values.shuffle(&mut rng);
+        let values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
 
         let mut tree = Tree::new();
         assert!(tree.get(&42).is_none());
@@ -74,11 +95,10 @@ mod tests {
 
     #[test]
     fn test_clear() {
-        use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
+        use rand::{rngs::StdRng, Rng, SeedableRng};
 
-        let mut values: Vec<i32> = (0..1000).collect();
         let mut rng = StdRng::seed_from_u64(0);
-        values.shuffle(&mut rng);
+        let values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
 
         let mut tree = Tree::new();
         for value in values.iter() {
@@ -101,11 +121,10 @@ mod tests {
 
     #[test]
     fn test_remove() {
-        use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
+        use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
 
-        let mut values: Vec<i32> = (0..1000).collect();
         let mut rng = StdRng::seed_from_u64(0);
-        values.shuffle(&mut rng);
+        let mut values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
 
         let mut tree = Tree::new();
         for value in values.iter() {
