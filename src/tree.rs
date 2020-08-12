@@ -226,6 +226,20 @@ where
         }
     }
 
+    unsafe fn left_height(node_ptr: NodePtr<K>) -> usize {
+        match node_ptr.as_ref().left {
+            None => 0,
+            Some(left_ptr) => left_ptr.as_ref().height,
+        }
+    }
+
+    unsafe fn right_height(node_ptr: NodePtr<K>) -> usize {
+        match node_ptr.as_ref().right {
+            None => 0,
+            Some(right_ptr) => right_ptr.as_ref().height,
+        }
+    }
+
     fn adjust_height(mut node_ptr: NodePtr<K>) {
         unsafe {
             node_ptr.as_mut().height = cmp::max(
@@ -304,19 +318,19 @@ where
             unsafe {
                 let parent = node_ptr.as_ref().parent;
 
-                let left_height = node_ptr.as_ref().left_height();
-                let right_height = node_ptr.as_ref().right_height();
+                let left_height = Self::left_height(node_ptr);
+                let right_height = Self::right_height(node_ptr);
                 if left_height > right_height + 1 {
                     // Rebalance right
                     let left_ptr = node_ptr.as_ref().left.unwrap();
-                    if left_ptr.as_ref().right_height() > left_ptr.as_ref().left_height() {
+                    if Self::right_height(left_ptr) > Self::left_height(left_ptr) {
                         self.rotate_left(left_ptr);
                     }
                     self.rotate_right(node_ptr);
                 } else if right_height > left_height + 1 {
                     // Rebalance left
                     let right_ptr = node_ptr.as_ref().right.unwrap();
-                    if right_ptr.as_ref().left_height() > right_ptr.as_ref().right_height() {
+                    if Self::left_height(right_ptr) > Self::right_height(right_ptr) {
                         self.rotate_right(right_ptr);
                     }
                     self.rotate_left(node_ptr);
@@ -424,20 +438,6 @@ where
 
     unsafe fn destroy(node_ptr: NodePtr<K>) {
         Box::from_raw(node_ptr.as_ptr());
-    }
-
-    fn left_height(&self) -> usize {
-        match self.left {
-            None => 0,
-            Some(left_ptr) => unsafe { left_ptr.as_ref().height },
-        }
-    }
-
-    fn right_height(&self) -> usize {
-        match self.right {
-            None => 0,
-            Some(right_ptr) => unsafe { right_ptr.as_ref().height },
-        }
     }
 }
 
