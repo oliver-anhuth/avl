@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_variables, unused_must_use)]
-
 use std::cmp;
 use std::ptr::NonNull;
 
