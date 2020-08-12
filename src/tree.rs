@@ -54,7 +54,7 @@ where
                 *link_ptr.as_mut() = Some(Node::create(parent, key));
             }
             self.num_nodes += 1;
-            self.rebalance(parent);
+            self.rebalance_once(parent);
             return true;
         }
         false
@@ -317,33 +317,55 @@ where
         }
     }
 
-    /// Rebalance nodes starting from given position up to the root node.
-    fn rebalance(&mut self, mut link: Link<K>) {
-        while let Some(node_ptr) = link {
-            unsafe {
-                let parent = node_ptr.as_ref().parent;
+    // Rebalance nodes starting from given position up to the root node.
+    fn rebalance(&mut self, start_from: Link<K>) {
+        let mut current = start_from;
+        while let Some(node_ptr) = current {
+            let parent = unsafe { node_ptr.as_ref().parent };
+            self.rebalance_node(node_ptr);
+            current = parent;
+        }
+    }
 
-                let left_height = Self::left_height(node_ptr);
-                let right_height = Self::right_height(node_ptr);
-                if left_height > right_height + 1 {
-                    // Rebalance right
-                    let left_ptr = node_ptr.as_ref().left.unwrap();
-                    if Self::right_height(left_ptr) > Self::left_height(left_ptr) {
-                        self.rotate_left(left_ptr);
-                    }
-                    self.rotate_right(node_ptr);
-                } else if right_height > left_height + 1 {
-                    // Rebalance left
-                    let right_ptr = node_ptr.as_ref().right.unwrap();
-                    if Self::left_height(right_ptr) > Self::right_height(right_ptr) {
-                        self.rotate_right(right_ptr);
-                    }
-                    self.rotate_left(node_ptr);
-                } else {
-                    Self::adjust_height(node_ptr);
+    // Rebalance nodes starting from given position up to the root node.
+    // Stop after first rebalance operation.
+    // This is enough to restore balance after a single insert operation.
+    fn rebalance_once(&mut self, start_from: Link<K>) {
+        let mut current = start_from;
+        while let Some(node_ptr) = current {
+            let parent = unsafe { node_ptr.as_ref().parent };
+            let did_rebalance = self.rebalance_node(node_ptr);
+            if did_rebalance {
+                break;
+            }
+            current = parent;
+        }
+    }
+
+    // Rebalance nodes starting from given position up to the root node.
+    fn rebalance_node(&mut self, node_ptr: NodePtr<K>) -> bool {
+        unsafe {
+            let left_height = Self::left_height(node_ptr);
+            let right_height = Self::right_height(node_ptr);
+            if left_height > right_height + 1 {
+                // Rebalance right
+                let left_ptr = node_ptr.as_ref().left.unwrap();
+                if Self::right_height(left_ptr) > Self::left_height(left_ptr) {
+                    self.rotate_left(left_ptr);
                 }
-
-                link = parent;
+                self.rotate_right(node_ptr);
+                true
+            } else if right_height > left_height + 1 {
+                // Rebalance left
+                let right_ptr = node_ptr.as_ref().right.unwrap();
+                if Self::left_height(right_ptr) > Self::right_height(right_ptr) {
+                    self.rotate_right(right_ptr);
+                }
+                self.rotate_left(node_ptr);
+                true
+            } else {
+                Self::adjust_height(node_ptr);
+                false
             }
         }
     }
