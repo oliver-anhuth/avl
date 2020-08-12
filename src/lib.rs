@@ -109,22 +109,4 @@ mod tests {
         assert!(tree.is_empty());
         assert!(tree.len() == 0);
     }
-
-    #[test]
-    fn test_rotation() {
-        use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
-
-        let mut values: Vec<i32> = (0..1000).collect();
-        let mut rng = StdRng::seed_from_u64(0);
-        values.shuffle(&mut rng);
-
-        let mut tree = Tree::new();
-        for value in values.iter() {
-            tree.insert(*value);
-            tree.test_left_rotation();
-            tree.check_consistency();
-            tree.test_right_rotation();
-            tree.check_consistency();
-        }
-    }
 }

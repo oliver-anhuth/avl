@@ -49,7 +49,7 @@ where
                 *link_ptr.as_mut() = Some(Node::create(parent, key));
             }
             self.num_nodes += 1;
-            self.start_recalculate(parent);
+            self.rebalance(parent);
             return true;
         }
         false
@@ -68,26 +68,6 @@ where
         false
     }
 
-    pub fn test_left_rotation(&mut self) {
-        if let Some(node_ptr) = self.root {
-            if let Some(right_ptr) = unsafe { node_ptr.as_ref().right } {
-                self.rotate_left(right_ptr);
-                Self::adjust_height(right_ptr);
-            }
-            self.rotate_left(node_ptr);
-        }
-    }
-
-    pub fn test_right_rotation(&mut self) {
-        if let Some(node_ptr) = self.root {
-            if let Some(left_ptr) = unsafe { node_ptr.as_ref().left } {
-                self.rotate_right(left_ptr);
-                Self::adjust_height(left_ptr);
-            }
-            self.rotate_right(node_ptr);
-        }
-    }
-
     pub fn check_consistency(&self) {
         unsafe {
             // Check root link
@@ -99,33 +79,35 @@ where
             let mut num_nodes = 0;
             self.preorder(|node_ptr| {
                 let mut height = 0;
+                let mut left_height = 0;
+                let mut right_height = 0;
 
                 // Check link for left child node
                 if let Some(left_ptr) = node_ptr.as_ref().left {
                     assert!(left_ptr.as_ref().parent == Some(node_ptr));
-                    height = cmp::max(height, left_ptr.as_ref().height + 1);
+                    left_height = left_ptr.as_ref().height;
+                    height = cmp::max(height, left_height + 1);
                 }
 
                 // Check link for right child node
                 if let Some(right_ptr) = node_ptr.as_ref().right {
                     assert!(right_ptr.as_ref().parent == Some(node_ptr));
-                    height = cmp::max(height, right_ptr.as_ref().height + 1);
+                    right_height = right_ptr.as_ref().height;
+                    height = cmp::max(height, right_height + 1);
                 }
 
+                // Check height
                 assert_eq!(node_ptr.as_ref().height, height);
+
+                // Check AVL condition (nearly balance)
+                assert!(left_height <= right_height + 1);
+                assert!(right_height <= left_height + 1);
 
                 num_nodes += 1;
             });
-            assert_eq!(num_nodes, self.num_nodes);
-        }
-    }
 
-    fn start_recalculate(&mut self, mut link: Link<K>) {
-        while let Some(node_ptr) = link {
-            unsafe {
-                Self::adjust_height(node_ptr);
-                link = node_ptr.as_ref().parent;
-            }
+            // Check number of nodes
+            assert_eq!(num_nodes, self.num_nodes);
         }
     }
 
@@ -134,17 +116,24 @@ where
             unsafe {
                 let parent = node_ptr.as_ref().parent;
 
-                let left_tree_height = match node_ptr.as_ref().left {
-                    None => 0,
-                    Some(left_ptr) => left_ptr.as_ref().height,
-                };
-                let right_tree_height = match node_ptr.as_ref().right {
-                    None => 0,
-                    Some(right_ptr) => right_ptr.as_ref().height,
-                };
-
-                if left_tree_height > right_tree_height + 1 {
-                } else if right_tree_height > left_tree_height + 1 {
+                let left_height = node_ptr.as_ref().left_height();
+                let right_height = node_ptr.as_ref().right_height();
+                if left_height > right_height + 1 {
+                    // Rebalance right
+                    let left_ptr = node_ptr.as_ref().left.unwrap();
+                    if left_ptr.as_ref().right_height() > left_ptr.as_ref().left_height() {
+                        self.rotate_left(left_ptr);
+                    }
+                    self.rotate_right(node_ptr);
+                } else if right_height > left_height + 1 {
+                    // Rebalance left
+                    let right_ptr = node_ptr.as_ref().right.unwrap();
+                    if right_ptr.as_ref().left_height() > right_ptr.as_ref().right_height() {
+                        self.rotate_right(right_ptr);
+                    }
+                    self.rotate_left(node_ptr);
+                } else {
+                    Self::adjust_height(node_ptr);
                 }
 
                 link = parent;
@@ -249,12 +238,12 @@ where
                 }
 
                 // Parent of smallest child node might be out of balance now
-                let mut recalculate_from = min_child_parent_ptr;
-                if recalculate_from == node_ptr {
+                let mut rebalance_from = min_child_parent_ptr;
+                if rebalance_from == node_ptr {
                     // Parent is node to-unlink and has been replaced by smallest child
-                    recalculate_from = min_child_ptr;
+                    rebalance_from = min_child_ptr;
                 }
-                self.start_recalculate(Some(recalculate_from));
+                self.rebalance(Some(rebalance_from));
             } else {
                 // Node to-unlink is stem or leaf, unlink from tree.
                 debug_assert!(node_ptr.as_ref().right.is_none());
@@ -270,7 +259,7 @@ where
                             parent_ptr.as_mut().right = node_ptr.as_ref().left
                         }
                         // Parent node might be out of balance now
-                        self.start_recalculate(Some(parent_ptr));
+                        self.rebalance(Some(parent_ptr));
                     }
                 }
             }
@@ -430,6 +419,20 @@ where
 
     unsafe fn destroy(node_ptr: NodePtr<K>) {
         Box::from_raw(node_ptr.as_ptr());
+    }
+
+    fn left_height(&self) -> usize {
+        match self.left {
+            None => 0,
+            Some(left_ptr) => unsafe { left_ptr.as_ref().height },
+        }
+    }
+
+    fn right_height(&self) -> usize {
+        match self.right {
+            None => 0,
+            Some(right_ptr) => unsafe { right_ptr.as_ref().height },
+        }
     }
 }
 
