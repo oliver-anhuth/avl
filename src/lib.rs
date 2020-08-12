@@ -20,7 +20,7 @@ mod tests {
     fn test_insert() {
         use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 
-        let mut values: Vec<i32> = (0..100).collect();
+        let mut values: Vec<i32> = (0..1000).collect();
         let mut rng = StdRng::seed_from_u64(0);
         values.shuffle(&mut rng);
 
@@ -35,6 +35,19 @@ mod tests {
             assert!(!tree.insert(*value));
         }
         assert!(tree.len() == values.len());
+    }
+
+    #[test]
+    fn test_insert_sorted() {
+        let values: Vec<i32> = (0..1000).collect();
+        let mut tree = Tree::new();
+        for value in values.iter() {
+            assert!(tree.insert(*value));
+            tree.check_consistency();
+        }
+        assert!(tree.len() == values.len());
+        assert!(tree.height() > 0);
+        assert!(tree.height() < values.len() / 2);
     }
 
     #[test]

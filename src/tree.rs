@@ -30,6 +30,13 @@ where
         self.num_nodes
     }
 
+    pub fn height(&self) -> usize {
+        match self.root {
+            None => 0,
+            Some(root_ptr) => unsafe { root_ptr.as_ref().height },
+        }
+    }
+
     pub fn clear(&mut self) {
         self.postorder(|node_ptr| unsafe { Node::destroy(node_ptr) });
         self.root = None;
@@ -108,51 +115,6 @@ where
 
             // Check number of nodes
             assert_eq!(num_nodes, self.num_nodes);
-        }
-    }
-
-    fn rebalance(&mut self, mut link: Link<K>) {
-        while let Some(node_ptr) = link {
-            unsafe {
-                let parent = node_ptr.as_ref().parent;
-
-                let left_height = node_ptr.as_ref().left_height();
-                let right_height = node_ptr.as_ref().right_height();
-                if left_height > right_height + 1 {
-                    // Rebalance right
-                    let left_ptr = node_ptr.as_ref().left.unwrap();
-                    if left_ptr.as_ref().right_height() > left_ptr.as_ref().left_height() {
-                        self.rotate_left(left_ptr);
-                    }
-                    self.rotate_right(node_ptr);
-                } else if right_height > left_height + 1 {
-                    // Rebalance left
-                    let right_ptr = node_ptr.as_ref().right.unwrap();
-                    if right_ptr.as_ref().left_height() > right_ptr.as_ref().right_height() {
-                        self.rotate_right(right_ptr);
-                    }
-                    self.rotate_left(node_ptr);
-                } else {
-                    Self::adjust_height(node_ptr);
-                }
-
-                link = parent;
-            }
-        }
-    }
-
-    fn adjust_height(mut node_ptr: NodePtr<K>) {
-        unsafe {
-            node_ptr.as_mut().height = cmp::max(
-                match node_ptr.as_ref().left {
-                    None => 0,
-                    Some(left_ptr) => left_ptr.as_ref().height + 1,
-                },
-                match node_ptr.as_ref().right {
-                    None => 0,
-                    Some(right_ptr) => right_ptr.as_ref().height + 1,
-                },
-            );
         }
     }
 
@@ -266,6 +228,21 @@ where
         }
     }
 
+    fn adjust_height(mut node_ptr: NodePtr<K>) {
+        unsafe {
+            node_ptr.as_mut().height = cmp::max(
+                match node_ptr.as_ref().left {
+                    None => 0,
+                    Some(left_ptr) => left_ptr.as_ref().height + 1,
+                },
+                match node_ptr.as_ref().right {
+                    None => 0,
+                    Some(right_ptr) => right_ptr.as_ref().height + 1,
+                },
+            );
+        }
+    }
+
     fn rotate_left(&mut self, mut node_ptr: NodePtr<K>) {
         unsafe {
             if let Some(mut right_ptr) = node_ptr.as_ref().right {
@@ -320,6 +297,36 @@ where
 
                 Self::adjust_height(node_ptr);
                 Self::adjust_height(left_ptr);
+            }
+        }
+    }
+
+    fn rebalance(&mut self, mut link: Link<K>) {
+        while let Some(node_ptr) = link {
+            unsafe {
+                let parent = node_ptr.as_ref().parent;
+
+                let left_height = node_ptr.as_ref().left_height();
+                let right_height = node_ptr.as_ref().right_height();
+                if left_height > right_height + 1 {
+                    // Rebalance right
+                    let left_ptr = node_ptr.as_ref().left.unwrap();
+                    if left_ptr.as_ref().right_height() > left_ptr.as_ref().left_height() {
+                        self.rotate_left(left_ptr);
+                    }
+                    self.rotate_right(node_ptr);
+                } else if right_height > left_height + 1 {
+                    // Rebalance left
+                    let right_ptr = node_ptr.as_ref().right.unwrap();
+                    if right_ptr.as_ref().left_height() > right_ptr.as_ref().right_height() {
+                        self.rotate_right(right_ptr);
+                    }
+                    self.rotate_left(node_ptr);
+                } else {
+                    Self::adjust_height(node_ptr);
+                }
+
+                link = parent;
             }
         }
     }
