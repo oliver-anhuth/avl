@@ -1,18 +1,12 @@
 use std::cmp;
 use std::ptr::NonNull;
 
-pub struct Tree<K>
-where
-    K: PartialEq + PartialOrd,
-{
-    root: Link<K>,
+pub struct Tree<K: PartialOrd, V> {
+    root: Link<K, V>,
     num_nodes: usize,
 }
 
-impl<K> Tree<K>
-where
-    K: PartialEq + PartialOrd,
-{
+impl<K: PartialOrd, V> Tree<K, V> {
     pub fn new() -> Self {
         Self {
             root: None,
@@ -42,17 +36,17 @@ where
         self.num_nodes = 0;
     }
 
-    pub fn get(&self, key: &K) -> Option<&K> {
+    pub fn get(&self, key: &K) -> Option<&V> {
         if let Some(node_ptr) = self.find(key) {
-            return Some(&unsafe { &*node_ptr.as_ptr() }.key);
+            return Some(&unsafe { &*node_ptr.as_ptr() }.value);
         }
         None
     }
 
-    pub fn insert(&mut self, key: K) -> bool {
+    pub fn insert(&mut self, key: K, value: V) -> bool {
         if let Some((parent, mut link_ptr)) = self.find_insert_pos(&key) {
             unsafe {
-                *link_ptr.as_mut() = Some(Node::create(parent, key));
+                *link_ptr.as_mut() = Some(Node::create(parent, key, value));
             }
             self.num_nodes += 1;
             self.rebalance_once(parent);
@@ -120,7 +114,7 @@ where
         }
     }
 
-    fn find(&self, key: &K) -> Link<K> {
+    fn find(&self, key: &K) -> Link<K, V> {
         let mut current = self.root;
         while let Some(node_ptr) = current {
             unsafe {
@@ -136,9 +130,9 @@ where
         current
     }
 
-    fn find_insert_pos(&mut self, key: &K) -> Option<(Link<K>, LinkPtr<K>)> {
-        let mut parent: Link<K> = None;
-        let mut link_ptr: LinkPtr<K> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
+    fn find_insert_pos(&mut self, key: &K) -> Option<(Link<K, V>, LinkPtr<K, V>)> {
+        let mut parent: Link<K, V> = None;
+        let mut link_ptr: LinkPtr<K, V> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
         unsafe {
             while let Some(mut node_ptr) = link_ptr.as_ref() {
                 if *key == node_ptr.as_ref().key {
@@ -156,7 +150,7 @@ where
         Some((parent, link_ptr))
     }
 
-    fn unlink_node(&mut self, node_ptr: NodePtr<K>) {
+    fn unlink_node(&mut self, node_ptr: NodePtr<K, V>) {
         unsafe {
             // Check if node to-unlink has right sub tree
             if let Some(mut min_child_ptr) = node_ptr.as_ref().right {
@@ -230,7 +224,7 @@ where
         }
     }
 
-    fn left_height(node_ptr: NodePtr<K>) -> usize {
+    fn left_height(node_ptr: NodePtr<K, V>) -> usize {
         unsafe {
             match node_ptr.as_ref().left {
                 None => 0,
@@ -239,7 +233,7 @@ where
         }
     }
 
-    fn right_height(node_ptr: NodePtr<K>) -> usize {
+    fn right_height(node_ptr: NodePtr<K, V>) -> usize {
         unsafe {
             match node_ptr.as_ref().right {
                 None => 0,
@@ -248,7 +242,7 @@ where
         }
     }
 
-    fn adjust_height(mut node_ptr: NodePtr<K>) {
+    fn adjust_height(mut node_ptr: NodePtr<K, V>) {
         unsafe {
             node_ptr.as_mut().height = cmp::max(
                 match node_ptr.as_ref().left {
@@ -263,7 +257,7 @@ where
         }
     }
 
-    fn rotate_left(&mut self, mut node_ptr: NodePtr<K>) {
+    fn rotate_left(&mut self, mut node_ptr: NodePtr<K, V>) {
         unsafe {
             if let Some(mut right_ptr) = node_ptr.as_ref().right {
                 node_ptr.as_mut().right = right_ptr.as_ref().left;
@@ -292,7 +286,7 @@ where
         }
     }
 
-    fn rotate_right(&mut self, mut node_ptr: NodePtr<K>) {
+    fn rotate_right(&mut self, mut node_ptr: NodePtr<K, V>) {
         unsafe {
             if let Some(mut left_ptr) = node_ptr.as_ref().left {
                 node_ptr.as_mut().left = left_ptr.as_ref().right;
@@ -322,7 +316,7 @@ where
     }
 
     // Rebalance nodes starting from given position up to the root node.
-    fn rebalance(&mut self, start_from: Link<K>) {
+    fn rebalance(&mut self, start_from: Link<K, V>) {
         let mut current = start_from;
         while let Some(node_ptr) = current {
             let parent = unsafe { node_ptr.as_ref().parent };
@@ -334,7 +328,7 @@ where
     // Rebalance nodes starting from given position up to the root node.
     // Stop after first rebalance operation.
     // This is enough to restore balance after a single insert operation.
-    fn rebalance_once(&mut self, start_from: Link<K>) {
+    fn rebalance_once(&mut self, start_from: Link<K, V>) {
         let mut current = start_from;
         while let Some(node_ptr) = current {
             let parent = unsafe { node_ptr.as_ref().parent };
@@ -347,7 +341,7 @@ where
     }
 
     // Rebalance nodes starting from given position up to the root node.
-    fn rebalance_node(&mut self, node_ptr: NodePtr<K>) -> bool {
+    fn rebalance_node(&mut self, node_ptr: NodePtr<K, V>) -> bool {
         unsafe {
             let left_height = Self::left_height(node_ptr);
             let right_height = Self::right_height(node_ptr);
@@ -375,19 +369,19 @@ where
     }
 
     #[cfg(test)]
-    fn preorder<F: FnMut(NodePtr<K>)>(&self, f: F) {
+    fn preorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
         self.traverse(f, |_| {}, |_| {});
     }
 
-    fn postorder<F: FnMut(NodePtr<K>)>(&self, f: F) {
+    fn postorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
         self.traverse(|_| {}, |_| {}, f);
     }
 
     fn traverse<Pre, In, Post>(&self, mut preorder: Pre, mut inorder: In, mut postorder: Post)
     where
-        Pre: FnMut(NodePtr<K>),
-        In: FnMut(NodePtr<K>),
-        Post: FnMut(NodePtr<K>),
+        Pre: FnMut(NodePtr<K, V>),
+        In: FnMut(NodePtr<K, V>),
+        Post: FnMut(NodePtr<K, V>),
     {
         if let Some(mut node_ptr) = self.root {
             let mut dir = Direction::FromParent;
@@ -432,34 +426,30 @@ where
     }
 }
 
-impl<K> Drop for Tree<K>
-where
-    K: PartialEq + PartialOrd,
-{
+impl<K: PartialOrd, V> Drop for Tree<K, V> {
     fn drop(&mut self) {
         self.clear();
     }
 }
 
-type NodePtr<K> = NonNull<Node<K>>;
-type Link<K> = Option<NodePtr<K>>;
-type LinkPtr<K> = NonNull<Link<K>>;
+type NodePtr<K, V> = NonNull<Node<K, V>>;
+type Link<K, V> = Option<NodePtr<K, V>>;
+type LinkPtr<K, V> = NonNull<Link<K, V>>;
 
-struct Node<K> {
+struct Node<K, V> {
     key: K,
-    left: Link<K>,
-    right: Link<K>,
-    parent: Link<K>,
+    value: V,
+    left: Link<K, V>,
+    right: Link<K, V>,
+    parent: Link<K, V>,
     height: usize,
 }
 
-impl<K> Node<K>
-where
-    K: PartialOrd,
-{
-    fn create(parent: Link<K>, key: K) -> NodePtr<K> {
+impl<K: PartialOrd, V> Node<K, V> {
+    fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
         let boxed = Box::new(Node {
             key,
+            value,
             parent,
             left: None,
             right: None,
@@ -468,7 +458,7 @@ where
         unsafe { NodePtr::new_unchecked(Box::into_raw(boxed)) }
     }
 
-    unsafe fn destroy(node_ptr: NodePtr<K>) {
+    unsafe fn destroy(node_ptr: NodePtr<K, V>) {
         Box::from_raw(node_ptr.as_ptr());
     }
 }
