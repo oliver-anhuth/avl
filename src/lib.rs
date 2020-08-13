@@ -56,25 +56,13 @@ mod tests {
         assert!(map_i32.is_empty());
         map_i32.check_consistency();
 
-        let set_i32 = AvlTreeSet::<i32>::new();
-        assert!(set_i32.is_empty());
-        set_i32.check_consistency();
-
         let map_i8 = AvlTreeMap::<i8, ()>::new();
         assert!(map_i8.is_empty());
         map_i8.check_consistency();
 
-        let set_i8 = AvlTreeSet::<i8>::new();
-        assert!(set_i8.is_empty());
-        set_i8.check_consistency();
-
         let map_string = AvlTreeMap::<String, String>::new();
         assert!(map_string.is_empty());
         map_string.check_consistency();
-
-        let set_string = AvlTreeSet::<String>::new();
-        assert!(set_string.is_empty());
-        set_string.check_consistency();
     }
 
     #[test]
@@ -86,29 +74,29 @@ mod tests {
         values.sort();
         values.dedup();
 
-        let mut tree = AvlTreeMap::new();
+        let mut map = AvlTreeMap::new();
         for value in &values {
-            assert!(tree.insert(*value, *value));
-            tree.check_consistency();
+            assert!(map.insert(*value, *value));
+            map.check_consistency();
         }
-        assert!(tree.len() == values.len());
+        assert!(map.len() == values.len());
 
         for value in &values {
-            assert!(!tree.insert(*value, *value));
+            assert!(!map.insert(*value, *value));
         }
-        assert!(tree.len() == values.len());
+        assert!(map.len() == values.len());
     }
 
     #[test]
     fn test_insert_sorted_range() {
-        let mut tree = AvlTreeMap::new();
+        let mut map = AvlTreeMap::new();
         for value in 0..N {
-            assert!(tree.insert(value, value));
-            tree.check_consistency();
+            assert!(map.insert(value, value));
+            map.check_consistency();
         }
-        assert!(tree.len() == N as usize);
-        assert!(tree.height() > 0);
-        assert!(tree.height() < N as usize / 2);
+        assert!(map.len() == N as usize);
+        assert!(map.height() > 0);
+        assert!(map.height() < N as usize / 2);
     }
 
     #[test]
@@ -119,17 +107,17 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(0);
         values.shuffle(&mut rng);
 
-        let mut tree = AvlTreeMap::new();
+        let mut map = AvlTreeMap::new();
         for value in &values {
-            assert!(tree.insert(*value, "foo"));
-            tree.check_consistency();
+            assert!(map.insert(*value, "foo"));
+            map.check_consistency();
         }
-        assert!(tree.len() == values.len());
+        assert!(map.len() == values.len());
 
         for value in &values {
-            assert!(!tree.insert(*value, "bar"));
+            assert!(!map.insert(*value, "bar"));
         }
-        assert!(tree.len() == values.len());
+        assert!(map.len() == values.len());
     }
 
     #[test]
@@ -139,18 +127,18 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(0);
         let values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
 
-        let mut tree = AvlTreeMap::new();
-        assert!(tree.get(&42).is_none());
+        let mut map = AvlTreeMap::new();
+        assert!(map.get(&42).is_none());
         for value in &values {
-            tree.insert(*value, *value + 1);
+            map.insert(*value, *value + 1);
         }
 
         for value in &values {
-            let got = tree.get(value);
+            let got = map.get(value);
             assert!(got.is_some());
             assert_eq!(*got.unwrap(), *value + 1);
         }
-        assert!(tree.get(&-42).is_none());
+        assert!(map.get(&-42).is_none());
     }
 
     #[test]
@@ -162,23 +150,23 @@ mod tests {
         values.sort();
         values.dedup();
 
-        let mut tree = AvlTreeMap::new();
+        let mut map = AvlTreeMap::new();
         for value in &values {
-            tree.insert(*value, String::from("foo"));
+            map.insert(*value, String::from("foo"));
         }
-        assert!(!tree.is_empty());
-        assert!(tree.len() == values.len());
+        assert!(!map.is_empty());
+        assert!(map.len() == values.len());
 
-        tree.clear();
-        assert!(tree.is_empty());
-        assert!(tree.len() == 0);
+        map.clear();
+        assert!(map.is_empty());
+        assert!(map.len() == 0);
 
         for value in &values {
-            assert!(tree.insert(*value, String::from("bar")));
+            assert!(map.insert(*value, String::from("bar")));
         }
-        assert!(!tree.is_empty());
-        assert!(tree.len() == values.len());
-        tree.check_consistency();
+        assert!(!map.is_empty());
+        assert!(map.len() == values.len());
+        map.check_consistency();
     }
 
     #[test]
@@ -190,20 +178,41 @@ mod tests {
         values.sort();
         values.dedup();
 
-        let mut tree = AvlTreeMap::new();
+        let mut map = AvlTreeMap::new();
         for value in &values {
-            tree.insert(*value, ());
+            map.insert(*value, ());
         }
 
         values.shuffle(&mut rng);
         for value in &values {
-            assert!(tree.get(value).is_some());
-            assert!(tree.remove(value));
-            assert!(tree.get(value).is_none());
-            tree.check_consistency();
+            assert!(map.get(value).is_some());
+            assert!(map.remove(value));
+            assert!(map.get(value).is_none());
+            map.check_consistency();
         }
-        assert!(tree.is_empty());
-        assert!(tree.len() == 0);
+        assert!(map.is_empty());
+        assert!(map.len() == 0);
+    }
+
+    #[test]
+    fn test_set() {
+        use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
+
+        let mut rng = StdRng::seed_from_u64(0);
+        let mut values: Vec<i32> = (0..N).map(|_| rng.gen_range(0, N)).collect();
+
+        let mut set = AvlTreeSet::new();
+        for value in &values {
+            set.insert(*value);
+        }
+        set.check_consistency();
+
+        values.shuffle(&mut rng);
+        values.resize(values.len() / 2, 0);
+        for value in &values {
+            set.remove(value);
+        }
+        set.check_consistency();
     }
 
     #[test]
@@ -214,17 +223,17 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(0);
         let mut values: Vec<i32> = (0..LARGE_N).map(|_| rng.gen_range(0, LARGE_N)).collect();
 
-        let mut tree = AvlTreeMap::new();
+        let mut map = AvlTreeMap::new();
         for value in &values {
-            tree.insert(*value, *value);
+            map.insert(*value, *value);
         }
-        tree.check_consistency();
+        map.check_consistency();
 
         values.shuffle(&mut rng);
         values.resize(values.len() / 2, 0);
         for value in &values {
-            tree.remove(value);
+            map.remove(value);
         }
-        tree.check_consistency();
+        map.check_consistency();
     }
 }
