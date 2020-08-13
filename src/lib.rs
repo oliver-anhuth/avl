@@ -33,13 +33,13 @@ mod tests {
         values.dedup();
 
         let mut tree = Tree::new();
-        for value in values.iter() {
+        for value in &values {
             assert!(tree.insert(*value));
             tree.check_consistency();
         }
         assert!(tree.len() == values.len());
 
-        for value in values.iter() {
+        for value in &values {
             assert!(!tree.insert(*value));
         }
         assert!(tree.len() == values.len());
@@ -47,15 +47,14 @@ mod tests {
 
     #[test]
     fn test_insert_sorted_range() {
-        let values: Vec<i32> = (0..N).collect();
         let mut tree = Tree::new();
-        for value in values.iter() {
-            assert!(tree.insert(*value));
+        for value in 0..N {
+            assert!(tree.insert(value));
             tree.check_consistency();
         }
-        assert!(tree.len() == values.len());
+        assert!(tree.len() == N as usize);
         assert!(tree.height() > 0);
-        assert!(tree.height() < values.len() / 2);
+        assert!(tree.height() < N as usize / 2);
     }
 
     #[test]
@@ -67,13 +66,13 @@ mod tests {
         values.shuffle(&mut rng);
 
         let mut tree = Tree::new();
-        for value in values.iter() {
+        for value in &values {
             assert!(tree.insert(*value));
             tree.check_consistency();
         }
         assert!(tree.len() == values.len());
 
-        for value in values.iter() {
+        for value in &values {
             assert!(!tree.insert(*value));
         }
         assert!(tree.len() == values.len());
@@ -88,11 +87,11 @@ mod tests {
 
         let mut tree = Tree::new();
         assert!(tree.get(&42).is_none());
-        for value in values.iter() {
+        for value in &values {
             tree.insert(*value);
         }
 
-        for value in values.iter() {
+        for value in &values {
             let got = tree.get(value);
             assert!(got.is_some());
             assert_eq!(got.unwrap(), value);
@@ -110,7 +109,7 @@ mod tests {
         values.dedup();
 
         let mut tree = Tree::new();
-        for value in values.iter() {
+        for value in &values {
             tree.insert(*value);
         }
         assert!(!tree.is_empty());
@@ -120,7 +119,7 @@ mod tests {
         assert!(tree.is_empty());
         assert!(tree.len() == 0);
 
-        for value in values.iter() {
+        for value in &values {
             assert!(tree.insert(*value));
         }
         assert!(!tree.is_empty());
@@ -138,12 +137,12 @@ mod tests {
         values.dedup();
 
         let mut tree = Tree::new();
-        for value in values.iter() {
+        for value in &values {
             tree.insert(*value);
         }
 
         values.shuffle(&mut rng);
-        for value in values.iter() {
+        for value in &values {
             assert!(tree.get(value).is_some());
             assert!(tree.remove(value));
             assert!(tree.get(value).is_none());
@@ -162,14 +161,14 @@ mod tests {
         let mut values: Vec<i32> = (0..LARGE_N).map(|_| rng.gen_range(0, LARGE_N)).collect();
 
         let mut tree = Tree::new();
-        for value in values.iter() {
+        for value in &values {
             tree.insert(*value);
         }
         tree.check_consistency();
 
         values.shuffle(&mut rng);
         values.resize(values.len() / 2, 0);
-        for value in values.iter() {
+        for value in &values {
             tree.remove(value);
         }
         tree.check_consistency();
