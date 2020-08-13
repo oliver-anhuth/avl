@@ -1,12 +1,14 @@
 use std::cmp;
 use std::ptr::NonNull;
 
-pub struct Tree<K: Ord, V> {
+pub struct AvlTreeMap<K: Ord, V> {
     root: Link<K, V>,
     num_nodes: usize,
 }
 
-impl<K: Ord, V> Tree<K, V> {
+impl<K: Ord, V> AvlTreeMap<K, V> {
+    /// Creates an empty map.
+    /// No memory is allocated until the first item is inserted.
     pub fn new() -> Self {
         Self {
             root: None,
@@ -14,10 +16,12 @@ impl<K: Ord, V> Tree<K, V> {
         }
     }
 
+    /// Returns true if the map contains no elements.
     pub fn is_empty(&self) -> bool {
         self.root.is_none()
     }
 
+    /// Returns the number of elements in the map.
     pub fn len(&self) -> usize {
         self.num_nodes
     }
@@ -30,12 +34,14 @@ impl<K: Ord, V> Tree<K, V> {
         }
     }
 
+    /// Clears the map, deallocating all memory.
     pub fn clear(&mut self) {
         self.postorder(|node_ptr| unsafe { Node::destroy(node_ptr) });
         self.root = None;
         self.num_nodes = 0;
     }
 
+    /// Returns a reference to the value corresponding to the key.
     pub fn get(&self, key: &K) -> Option<&V> {
         if let Some(node_ptr) = self.find(key) {
             return Some(&unsafe { &*node_ptr.as_ptr() }.value);
@@ -43,6 +49,7 @@ impl<K: Ord, V> Tree<K, V> {
         None
     }
 
+    /// Returns references to the key-value pair corresponding to the key.
     pub fn get_key_value(&self, key: &K) -> Option<(&K, &V)> {
         if let Some(node_ptr) = self.find(key) {
             return Some((
@@ -53,6 +60,7 @@ impl<K: Ord, V> Tree<K, V> {
         None
     }
 
+    /// Inserts a key-value pair into the map.
     pub fn insert(&mut self, key: K, value: V) -> bool {
         if let Some((parent, mut link_ptr)) = self.find_insert_pos(&key) {
             unsafe {
@@ -65,6 +73,8 @@ impl<K: Ord, V> Tree<K, V> {
         false
     }
 
+    /// Removes a key from the map.
+    /// Returns the value at the key if the key was previously in the map.
     pub fn remove(&mut self, key: &K) -> bool {
         // Find node to-be-removed
         if let Some(node_ptr) = self.find(key) {
@@ -436,7 +446,7 @@ impl<K: Ord, V> Tree<K, V> {
     }
 }
 
-impl<K: Ord, V> Drop for Tree<K, V> {
+impl<K: Ord, V> Drop for AvlTreeMap<K, V> {
     fn drop(&mut self) {
         self.clear();
     }

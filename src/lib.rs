@@ -1,47 +1,8 @@
-mod tree;
+pub use map::AvlTreeMap;
+pub use set::AvlTreeSet;
 
-pub use tree::Tree as AvlTreeMap;
-
-pub struct AvlTreeSet<T: Ord> {
-    tree: AvlTreeMap<T, ()>,
-}
-
-impl<T: Ord> AvlTreeSet<T> {
-    pub fn new() -> Self {
-        Self {
-            tree: AvlTreeMap::new(),
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.tree.is_empty()
-    }
-
-    pub fn len(&self) -> usize {
-        self.tree.len()
-    }
-
-    pub fn clear(&mut self) {
-        self.tree.clear();
-    }
-
-    pub fn get(&self, value: &T) -> Option<&T> {
-        self.tree.get_key_value(value).map(|kv| kv.0)
-    }
-
-    pub fn insert(&mut self, value: T) -> bool {
-        self.tree.insert(value, ())
-    }
-
-    pub fn remove(&mut self, value: &T) -> bool {
-        self.tree.remove(value)
-    }
-
-    #[cfg(test)]
-    pub fn check_consistency(&self) {
-        self.tree.check_consistency()
-    }
-}
+mod map;
+mod set;
 
 #[cfg(test)]
 mod tests {
