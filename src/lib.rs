@@ -2,26 +2,79 @@ mod tree;
 
 pub use tree::Tree as AvlTreeMap;
 
+pub struct AvlTreeSet<T: PartialOrd> {
+    tree: AvlTreeMap<T, ()>,
+}
+
+impl<T: PartialOrd> AvlTreeSet<T> {
+    pub fn new() -> Self {
+        Self {
+            tree: AvlTreeMap::new(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.tree.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.tree.len()
+    }
+
+    pub fn clear(&mut self) {
+        self.tree.clear();
+    }
+
+    pub fn get(&self, value: &T) -> Option<&()> {
+        self.tree.get(value)
+    }
+
+    pub fn insert(&mut self, value: T) -> bool {
+        self.tree.insert(value, ())
+    }
+
+    pub fn remove(&mut self, value: &T) -> bool {
+        self.tree.remove(value)
+    }
+
+    #[cfg(test)]
+    pub fn check_consistency(&self) {
+        self.tree.check_consistency()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::AvlTreeMap;
+    use super::{AvlTreeMap, AvlTreeSet};
 
     const N: i32 = 1_000;
     const LARGE_N: i32 = 10_000_000;
 
     #[test]
     fn test_new() {
-        let tree_i32 = AvlTreeMap::<i32, ()>::new();
-        assert!(tree_i32.is_empty());
-        tree_i32.check_consistency();
+        let map_i32 = AvlTreeMap::<i32, ()>::new();
+        assert!(map_i32.is_empty());
+        map_i32.check_consistency();
 
-        let tree_i8 = AvlTreeMap::<i8, ()>::new();
-        assert!(tree_i8.is_empty());
-        tree_i8.check_consistency();
+        let set_i32 = AvlTreeSet::<i32>::new();
+        assert!(set_i32.is_empty());
+        set_i32.check_consistency();
 
-        let tree_string = AvlTreeMap::<String, String>::new();
-        assert!(tree_string.is_empty());
-        tree_string.check_consistency();
+        let map_i8 = AvlTreeMap::<i8, ()>::new();
+        assert!(map_i8.is_empty());
+        map_i8.check_consistency();
+
+        let set_i8 = AvlTreeSet::<i8>::new();
+        assert!(set_i8.is_empty());
+        set_i8.check_consistency();
+
+        let map_string = AvlTreeMap::<String, String>::new();
+        assert!(map_string.is_empty());
+        map_string.check_consistency();
+
+        let set_string = AvlTreeSet::<String>::new();
+        assert!(set_string.is_empty());
+        set_string.check_consistency();
     }
 
     #[test]
