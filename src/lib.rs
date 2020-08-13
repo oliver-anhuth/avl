@@ -2,11 +2,11 @@ mod tree;
 
 pub use tree::Tree as AvlTreeMap;
 
-pub struct AvlTreeSet<T: PartialOrd> {
+pub struct AvlTreeSet<T: Ord> {
     tree: AvlTreeMap<T, ()>,
 }
 
-impl<T: PartialOrd> AvlTreeSet<T> {
+impl<T: Ord> AvlTreeSet<T> {
     pub fn new() -> Self {
         Self {
             tree: AvlTreeMap::new(),

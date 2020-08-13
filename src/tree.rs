@@ -1,12 +1,12 @@
 use std::cmp;
 use std::ptr::NonNull;
 
-pub struct Tree<K: PartialOrd, V> {
+pub struct Tree<K: Ord, V> {
     root: Link<K, V>,
     num_nodes: usize,
 }
 
-impl<K: PartialOrd, V> Tree<K, V> {
+impl<K: Ord, V> Tree<K, V> {
     pub fn new() -> Self {
         Self {
             root: None,
@@ -426,7 +426,7 @@ impl<K: PartialOrd, V> Tree<K, V> {
     }
 }
 
-impl<K: PartialOrd, V> Drop for Tree<K, V> {
+impl<K: Ord, V> Drop for Tree<K, V> {
     fn drop(&mut self) {
         self.clear();
     }
@@ -445,7 +445,7 @@ struct Node<K, V> {
     height: usize,
 }
 
-impl<K: PartialOrd, V> Node<K, V> {
+impl<K: Ord, V> Node<K, V> {
     fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
         let boxed = Box::new(Node {
             key,
