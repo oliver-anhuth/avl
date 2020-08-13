@@ -25,8 +25,8 @@ impl<T: Ord> AvlTreeSet<T> {
         self.tree.clear();
     }
 
-    pub fn get(&self, value: &T) -> Option<&()> {
-        self.tree.get(value)
+    pub fn get(&self, value: &T) -> Option<&T> {
+        self.tree.get_key_value(value).map(|kv| kv.0)
     }
 
     pub fn insert(&mut self, value: T) -> bool {
@@ -135,8 +135,9 @@ mod tests {
 
         for value in &values {
             let got = map.get(value);
-            assert!(got.is_some());
-            assert_eq!(*got.unwrap(), *value + 1);
+            assert_eq!(got, Some(&(*value + 1)));
+            let got = map.get_key_value(value);
+            assert_eq!(got, Some((value, &(*value + 1))));
         }
         assert!(map.get(&-42).is_none());
     }
@@ -206,6 +207,11 @@ mod tests {
             set.insert(*value);
         }
         set.check_consistency();
+
+        for value in &values {
+            let got = set.get(value);
+            assert_eq!(got, Some(value));
+        }
 
         values.shuffle(&mut rng);
         values.resize(values.len() / 2, 0);

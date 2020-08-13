@@ -43,6 +43,16 @@ impl<K: Ord, V> Tree<K, V> {
         None
     }
 
+    pub fn get_key_value(&self, key: &K) -> Option<(&K, &V)> {
+        if let Some(node_ptr) = self.find(key) {
+            return Some((
+                &unsafe { &*node_ptr.as_ptr() }.key,
+                &unsafe { &*node_ptr.as_ptr() }.value,
+            ));
+        }
+        None
+    }
+
     pub fn insert(&mut self, key: K, value: V) -> bool {
         if let Some((parent, mut link_ptr)) = self.find_insert_pos(&key) {
             unsafe {
