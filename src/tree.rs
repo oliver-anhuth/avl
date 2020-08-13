@@ -73,6 +73,7 @@ where
         false
     }
 
+    #[cfg(test)]
     pub fn check_consistency(&self) {
         unsafe {
             // Check root link
@@ -90,6 +91,7 @@ where
                 // Check link for left child node
                 if let Some(left_ptr) = node_ptr.as_ref().left {
                     assert!(left_ptr.as_ref().parent == Some(node_ptr));
+                    assert!(left_ptr.as_ref().key < node_ptr.as_ref().key);
                     left_height = left_ptr.as_ref().height;
                     height = cmp::max(height, left_height + 1);
                 }
@@ -97,6 +99,7 @@ where
                 // Check link for right child node
                 if let Some(right_ptr) = node_ptr.as_ref().right {
                     assert!(right_ptr.as_ref().parent == Some(node_ptr));
+                    assert!(right_ptr.as_ref().key > node_ptr.as_ref().key);
                     right_height = right_ptr.as_ref().height;
                     height = cmp::max(height, right_height + 1);
                 }
@@ -370,6 +373,7 @@ where
         }
     }
 
+    #[cfg(test)]
     fn preorder<F: FnMut(NodePtr<K>)>(&self, f: F) {
         self.traverse(f, |_| {}, |_| {});
     }

@@ -46,20 +46,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
-    fn test_insert_large() {
-        use rand::{rngs::StdRng, Rng, SeedableRng};
-
-        let mut rng = StdRng::seed_from_u64(0);
-
-        let mut tree = Tree::new();
-        for value in (0..LARGE_N).map(|_| rng.gen::<i32>()) {
-            tree.insert(value);
-        }
-        tree.check_consistency();
-    }
-
-    #[test]
     fn test_insert_sorted_range() {
         let values: Vec<i32> = (0..N).collect();
         let mut tree = Tree::new();
@@ -165,5 +151,27 @@ mod tests {
         }
         assert!(tree.is_empty());
         assert!(tree.len() == 0);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_large() {
+        use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
+
+        let mut rng = StdRng::seed_from_u64(0);
+        let mut values: Vec<i32> = (0..LARGE_N).map(|_| rng.gen_range(0, LARGE_N)).collect();
+
+        let mut tree = Tree::new();
+        for value in values.iter() {
+            tree.insert(*value);
+        }
+        tree.check_consistency();
+
+        values.shuffle(&mut rng);
+        values.resize(values.len() / 2, 0);
+        for value in values.iter() {
+            tree.remove(value);
+        }
+        tree.check_consistency();
     }
 }
