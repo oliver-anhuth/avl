@@ -28,6 +28,7 @@ where
         self.num_nodes
     }
 
+    #[cfg(test)]
     pub fn height(&self) -> usize {
         match self.root {
             None => 0,
