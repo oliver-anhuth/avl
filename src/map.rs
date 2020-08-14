@@ -1,4 +1,4 @@
-use std::cmp;
+use std::cmp::{self, Ordering};
 use std::ptr::NonNull;
 
 pub struct AvlTreeMap<K: Ord, V> {
@@ -137,13 +137,11 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     fn find(&self, key: &K) -> Link<K, V> {
         let mut current = self.root;
         while let Some(node_ptr) = current {
-            unsafe {
-                if *key == node_ptr.as_ref().key {
-                    break;
-                } else if *key < node_ptr.as_ref().key {
-                    current = node_ptr.as_ref().left;
-                } else {
-                    current = node_ptr.as_ref().right;
+            current = unsafe {
+                match key.cmp(&node_ptr.as_ref().key) {
+                    Ordering::Equal => break,
+                    Ordering::Less => node_ptr.as_ref().left,
+                    Ordering::Greater => node_ptr.as_ref().right,
                 }
             }
         }
@@ -489,6 +487,7 @@ impl<K: Ord, V> Node<K, V> {
     }
 }
 
+#[allow(clippy::enum_variant_names)]
 enum Direction {
     FromParent,
     FromLeft,
