@@ -452,6 +452,12 @@ impl<K: Ord, V> Drop for AvlTreeMap<K, V> {
     }
 }
 
+impl<K: Ord, V> Default for AvlTreeMap<K, V> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 type NodePtr<K, V> = NonNull<Node<K, V>>;
 type Link<K, V> = Option<NodePtr<K, V>>;
 type LinkPtr<K, V> = NonNull<Link<K, V>>;

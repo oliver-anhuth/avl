@@ -49,3 +49,9 @@ impl<T: Ord> AvlTreeSet<T> {
         self.tree.check_consistency()
     }
 }
+
+impl<T: Ord> Default for AvlTreeSet<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
