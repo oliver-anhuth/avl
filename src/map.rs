@@ -333,7 +333,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         }
     }
 
-    // Rebalance nodes starting from given position up to the root node.
+    /// Rebalances nodes starting from given position up to the root node.
     fn rebalance(&mut self, start_from: Link<K, V>) {
         let mut current = start_from;
         while let Some(node_ptr) = current {
@@ -343,9 +343,9 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         }
     }
 
-    // Rebalance nodes starting from given position up to the root node.
-    // Stop after first rebalance operation.
-    // This is enough to restore balance after a single insert operation.
+    /// Rebalances nodes starting from given position up to the root node.
+    /// Stops after first rebalance operation.
+    /// This is enough to restore balance after a single insert operation.
     fn rebalance_once(&mut self, start_from: Link<K, V>) {
         let mut current = start_from;
         while let Some(node_ptr) = current {
@@ -358,7 +358,9 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         }
     }
 
-    // Rebalance nodes starting from given position up to the root node.
+    /// Restores AVL condition (balance) at given node if necessary and adjusts height.
+    /// Resulting balance will be +1, 0 or -1 height difference between left and right subtree.
+    /// Initial balance must node exceed +2 or -2, which always holds after a single update.
     fn rebalance_node(&mut self, node_ptr: NodePtr<K, V>) -> bool {
         unsafe {
             let left_height = Self::left_height(node_ptr);
