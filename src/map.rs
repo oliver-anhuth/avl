@@ -107,16 +107,16 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
                 if let Some(left_ptr) = node_ptr.as_ref().left {
                     assert!(left_ptr.as_ref().parent == Some(node_ptr));
                     assert!(left_ptr.as_ref().key < node_ptr.as_ref().key);
-                    left_height = left_ptr.as_ref().height;
-                    height = cmp::max(height, left_height + 1);
+                    left_height = left_ptr.as_ref().height + 1;
+                    height = cmp::max(height, left_height);
                 }
 
                 // Check link for right child node
                 if let Some(right_ptr) = node_ptr.as_ref().right {
                     assert!(right_ptr.as_ref().parent == Some(node_ptr));
                     assert!(right_ptr.as_ref().key > node_ptr.as_ref().key);
-                    right_height = right_ptr.as_ref().height;
-                    height = cmp::max(height, right_height + 1);
+                    right_height = right_ptr.as_ref().height + 1;
+                    height = cmp::max(height, right_height);
                 }
 
                 // Check height
