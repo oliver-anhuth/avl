@@ -361,10 +361,13 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     /// Restores AVL condition (balance) at given node if necessary and adjusts height.
     /// Resulting balance will be +1, 0 or -1 height difference between left and right subtree.
     /// Initial balance must node exceed +2 or -2, which always holds after a single update.
+    /// Returns whether rebalancing had been necessary.
     fn rebalance_node(&mut self, node_ptr: NodePtr<K, V>) -> bool {
         unsafe {
             let left_height = Self::left_height(node_ptr);
             let right_height = Self::right_height(node_ptr);
+            debug_assert!(left_height <= right_height + 2);
+            debug_assert!(right_height <= left_height + 2);
             if left_height > right_height + 1 {
                 // Rebalance right
                 let left_ptr = node_ptr.as_ref().left.unwrap();
