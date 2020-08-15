@@ -19,6 +19,62 @@ fn test_new() {
 }
 
 #[test]
+fn test_balance() {
+    {
+        //     3 ->   2
+        //    /      / \
+        //   2      1   3
+        //  /
+        // 1
+        let mut map = AvlTreeMap::new();
+        map.insert(3, ());
+        map.insert(2, ());
+        map.insert(1, ());
+        map.check_consistency();
+        assert_eq!(map.height(), 1);
+    }
+    {
+        //   3  ->   2
+        //  /       / \
+        // 1       1   3
+        //  \
+        //   2
+        let mut map = AvlTreeMap::new();
+        map.insert(3, ());
+        map.insert(1, ());
+        map.insert(2, ());
+        map.check_consistency();
+        assert_eq!(map.height(), 1);
+    }
+    {
+        // 1 ->    2
+        //  \     / \
+        //   2   1   3
+        //    \
+        //     3
+        let mut map = AvlTreeMap::new();
+        map.insert(3, ());
+        map.insert(2, ());
+        map.insert(1, ());
+        map.check_consistency();
+        assert_eq!(map.height(), 1);
+    }
+    {
+        // 1   ->  2
+        //  \     / \
+        //   3   1   3
+        //  /
+        // 2
+        let mut map = AvlTreeMap::new();
+        map.insert(1, ());
+        map.insert(3, ());
+        map.insert(2, ());
+        map.check_consistency();
+        assert_eq!(map.height(), 1);
+    }
+}
+
+#[test]
 fn test_insert() {
     use rand::{rngs::StdRng, Rng, SeedableRng};
 
