@@ -19,7 +19,7 @@ fn test_new() {
 }
 
 #[test]
-fn test_balance() {
+fn test_rebalance() {
     {
         //     3 ->   2
         //    /      / \
@@ -30,6 +30,23 @@ fn test_balance() {
         map.insert(3, ());
         map.insert(2, ());
         map.insert(1, ());
+        map.check_consistency();
+        assert_eq!(map.height(), 1);
+    }
+    {
+        //     3   ->     3 ->   2
+        //    / \        /      / \
+        //   2   4      2      1   3
+        //  /          /
+        // 1          1
+        let mut map = AvlTreeMap::new();
+        map.insert(3, ());
+        map.insert(2, ());
+        map.insert(4, ());
+        map.insert(1, ());
+        map.check_consistency();
+        assert_eq!(map.height(), 2);
+        map.remove(&4);
         map.check_consistency();
         assert_eq!(map.height(), 1);
     }
@@ -47,15 +64,49 @@ fn test_balance() {
         assert_eq!(map.height(), 1);
     }
     {
+        //   3   ->   3  ->   2
+        //  / \      /       / \
+        // 1   4    1       1   3
+        //  \        \
+        //   2        2
+        let mut map = AvlTreeMap::new();
+        map.insert(3, ());
+        map.insert(1, ());
+        map.insert(4, ());
+        map.insert(2, ());
+        map.check_consistency();
+        assert_eq!(map.height(), 2);
+        map.remove(&4);
+        map.check_consistency();
+        assert_eq!(map.height(), 1);
+    }
+    {
         // 1 ->    2
         //  \     / \
         //   2   1   3
         //    \
         //     3
         let mut map = AvlTreeMap::new();
-        map.insert(3, ());
-        map.insert(2, ());
         map.insert(1, ());
+        map.insert(2, ());
+        map.insert(3, ());
+        map.check_consistency();
+        assert_eq!(map.height(), 1);
+    }
+    {
+        //   1     -> 1     ->    2
+        //  / \        \         / \
+        // 0   2        2       1   3
+        //      \        \
+        //       3        3
+        let mut map = AvlTreeMap::new();
+        map.insert(1, ());
+        map.insert(0, ());
+        map.insert(2, ());
+        map.insert(3, ());
+        map.check_consistency();
+        assert_eq!(map.height(), 2);
+        map.remove(&0);
         map.check_consistency();
         assert_eq!(map.height(), 1);
     }
@@ -69,6 +120,23 @@ fn test_balance() {
         map.insert(1, ());
         map.insert(3, ());
         map.insert(2, ());
+        map.check_consistency();
+        assert_eq!(map.height(), 1);
+    }
+    {
+        //   1   ->  1   ->  2
+        //  / \       \     / \
+        // 0   3       3   1   3
+        //    /       /
+        //   2       2
+        let mut map = AvlTreeMap::new();
+        map.insert(1, ());
+        map.insert(0, ());
+        map.insert(3, ());
+        map.insert(2, ());
+        map.check_consistency();
+        assert_eq!(map.height(), 2);
+        map.remove(&0);
         map.check_consistency();
         assert_eq!(map.height(), 1);
     }
