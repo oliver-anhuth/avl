@@ -33,7 +33,7 @@ impl<T: Ord> AvlTreeSet<T> {
         self.tree.get_key_value(value).map(|kv| kv.0)
     }
 
-    /// Inserts a value pair into the set.
+    /// Inserts a value into the set.
     pub fn insert(&mut self, value: T) -> bool {
         self.tree.insert(value, ())
     }
