@@ -246,7 +246,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         unsafe {
             match node_ptr.as_ref().left {
                 None => 0,
-                Some(left_ptr) => left_ptr.as_ref().height,
+                Some(left_ptr) => left_ptr.as_ref().height + 1,
             }
         }
     }
@@ -255,7 +255,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         unsafe {
             match node_ptr.as_ref().right {
                 None => 0,
-                Some(right_ptr) => right_ptr.as_ref().height,
+                Some(right_ptr) => right_ptr.as_ref().height + 1,
             }
         }
     }
