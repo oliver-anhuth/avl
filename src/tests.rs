@@ -258,13 +258,13 @@ fn test_remove() {
 
     let mut map = AvlTreeMap::new();
     for value in &values {
-        map.insert(*value, ());
+        map.insert(*value, 42);
     }
 
     values.shuffle(&mut rng);
     for value in &values {
         assert!(map.get(value).is_some());
-        assert!(map.remove(value));
+        assert_eq!(map.remove(value), Some(42));
         assert!(map.get(value).is_none());
         map.check_consistency();
     }

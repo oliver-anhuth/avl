@@ -41,7 +41,7 @@ impl<T: Ord> AvlTreeSet<T> {
     /// Removes a value from the set.
     /// Returns whether the value was previously in the set.
     pub fn remove(&mut self, value: &T) -> bool {
-        self.tree.remove(value)
+        self.tree.remove(value).is_some()
     }
 
     #[cfg(test)]

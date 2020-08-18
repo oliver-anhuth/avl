@@ -109,17 +109,17 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
 
     /// Removes a key from the map.
     /// Returns the value at the key if the key was previously in the map.
-    pub fn remove(&mut self, key: &K) -> bool {
+    pub fn remove(&mut self, key: &K) -> Option<V> {
         // Find node to-be-removed
         if let Some(node_ptr) = self.find(key) {
-            debug_assert!(self.num_nodes >= 1);
-            self.unlink_node(node_ptr);
-            unsafe { Node::destroy(node_ptr) };
+            debug_assert!(self.num_nodes > 0);
             self.num_nodes -= 1;
-            debug_assert!(self.get(key).is_none());
-            return true;
+            self.unlink_node(node_ptr);
+            let value = unsafe { Node::destroy(node_ptr) };
+            debug_assert!(self.find(key).is_none());
+            return Some(value);
         }
-        false
+        None
     }
 
     #[cfg(test)]
@@ -484,7 +484,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
 }
 
 impl<K: Ord, V> Node<K, V> {
-    fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
+    unsafe fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
         let boxed = Box::new(Node {
             key,
             value,
@@ -493,10 +493,11 @@ impl<K: Ord, V> Node<K, V> {
             right: None,
             height: 0,
         });
-        unsafe { NodePtr::new_unchecked(Box::into_raw(boxed)) }
+        NodePtr::new_unchecked(Box::into_raw(boxed))
     }
 
-    unsafe fn destroy(node_ptr: NodePtr<K, V>) {
-        Box::from_raw(node_ptr.as_ptr());
+    unsafe fn destroy(node_ptr: NodePtr<K, V>) -> V {
+        let boxed = Box::from_raw(node_ptr.as_ptr());
+        boxed.value
     }
 }
