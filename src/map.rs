@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::cmp::{self, Ordering};
 use std::ptr::NonNull;
 
@@ -5,6 +7,13 @@ use std::ptr::NonNull;
 pub struct AvlTreeMap<K: Ord, V> {
     root: Link<K, V>,
     num_nodes: usize,
+}
+
+/// An iterator over the entries of an AvlTreeMap.
+pub struct Iter<'a, K, V> {
+    current: Link<K, V>,
+    dir: Direction,
+    _marker: std::marker::PhantomData<&'a Node<K, V>>,
 }
 
 struct Node<K, V> {
@@ -123,6 +132,14 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         None
     }
 
+    pub fn iter(&self) -> Iter<K, V> {
+        Iter {
+            current: self.find_min(),
+            dir: Direction::FromLeft,
+            _marker: std::marker::PhantomData,
+        }
+    }
+
     #[cfg(test)]
     pub fn check_consistency(&self) {
         unsafe {
@@ -181,6 +198,18 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
             }
         }
         current
+    }
+
+    fn find_min(&self) -> Link<K, V> {
+        if let Some(mut min_ptr) = self.root {
+            unsafe {
+                while let Some(left_ptr) = min_ptr.as_ref().left {
+                    min_ptr = left_ptr;
+                }
+                return Some(min_ptr);
+            }
+        }
+        None
     }
 
     fn find_insert_pos(&mut self, key: &K) -> Option<(Link<K, V>, LinkPtr<K, V>)> {
@@ -500,5 +529,12 @@ impl<K: Ord, V> Node<K, V> {
     unsafe fn destroy(node_ptr: NodePtr<K, V>) -> V {
         let boxed = Box::from_raw(node_ptr.as_ptr());
         boxed.value
+    }
+}
+
+impl<'a, K, V> Iterator for Iter<'a, K, V> {
+    type Item = (&'a K, &'a V);
+    fn next(&mut self) -> Option<Self::Item> {
+        None
     }
 }

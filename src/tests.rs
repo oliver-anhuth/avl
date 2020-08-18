@@ -300,6 +300,20 @@ fn test_set() {
 }
 
 #[test]
+fn test_iter() {
+    use rand::{rngs::StdRng, Rng, SeedableRng};
+
+    let mut rng = StdRng::seed_from_u64(0);
+    let values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
+
+    let mut map = AvlTreeMap::new();
+    for value in &values {
+        map.insert(*value, value.wrapping_add(42));
+    }
+    for (_key, _value) in map.iter() {}
+}
+
+#[test]
 #[ignore]
 fn test_large() {
     use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
