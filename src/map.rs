@@ -1,6 +1,7 @@
 use std::cmp::{self, Ordering};
 use std::ptr::NonNull;
 
+/// A sorted map implemented with a nearly balanced binary search tree.
 pub struct AvlTreeMap<K: Ord, V> {
     root: Link<K, V>,
     num_nodes: usize,

@@ -1,5 +1,6 @@
 use super::map::AvlTreeMap;
 
+/// A sorted set implemented with a nearly balanced binary search tree.
 pub struct AvlTreeSet<T: Ord> {
     tree: AvlTreeMap<T, ()>,
 }

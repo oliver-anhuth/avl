@@ -174,6 +174,7 @@ fn test_insert_sorted_range() {
     assert!(map.len() == N as usize);
     assert!(map.height() > 0);
     assert!(map.height() < N as usize / 2);
+    assert!(map.get(&-42).is_none());
 }
 
 #[test]
@@ -195,6 +196,7 @@ fn test_insert_shuffled_range() {
         assert!(!map.insert(*value, "bar"));
     }
     assert!(map.len() == values.len());
+    assert!(map.get(&-42).is_none());
 }
 
 #[test]
@@ -207,16 +209,15 @@ fn test_get() {
     let mut map = AvlTreeMap::new();
     assert!(map.get(&42).is_none());
     for value in &values {
-        map.insert(*value, *value + 1);
+        map.insert(*value, value.wrapping_add(1));
     }
 
     for value in &values {
         let got = map.get(value);
         assert_eq!(got, Some(&(*value + 1)));
         let got = map.get_key_value(value);
-        assert_eq!(got, Some((value, &(*value + 1))));
+        assert_eq!(got, Some((value, &(value.wrapping_add(1)))));
     }
-    assert!(map.get(&-42).is_none());
 }
 
 #[test]
