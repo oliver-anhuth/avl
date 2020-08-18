@@ -6,6 +6,26 @@ pub struct AvlTreeMap<K: Ord, V> {
     num_nodes: usize,
 }
 
+struct Node<K, V> {
+    key: K,
+    value: V,
+    left: Link<K, V>,
+    right: Link<K, V>,
+    parent: Link<K, V>,
+    height: usize,
+}
+
+type NodePtr<K, V> = NonNull<Node<K, V>>;
+type Link<K, V> = Option<NodePtr<K, V>>;
+type LinkPtr<K, V> = NonNull<Link<K, V>>;
+
+#[allow(clippy::enum_variant_names)]
+enum Direction {
+    FromParent,
+    FromLeft,
+    FromRight,
+}
+
 impl<K: Ord, V> AvlTreeMap<K, V> {
     /// Creates an empty map.
     /// No memory is allocated until the first item is inserted.
@@ -461,19 +481,6 @@ impl<K: Ord, V> Default for AvlTreeMap<K, V> {
     }
 }
 
-type NodePtr<K, V> = NonNull<Node<K, V>>;
-type Link<K, V> = Option<NodePtr<K, V>>;
-type LinkPtr<K, V> = NonNull<Link<K, V>>;
-
-struct Node<K, V> {
-    key: K,
-    value: V,
-    left: Link<K, V>,
-    right: Link<K, V>,
-    parent: Link<K, V>,
-    height: usize,
-}
-
 impl<K: Ord, V> Node<K, V> {
     fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
         let boxed = Box::new(Node {
@@ -490,11 +497,4 @@ impl<K: Ord, V> Node<K, V> {
     unsafe fn destroy(node_ptr: NodePtr<K, V>) {
         Box::from_raw(node_ptr.as_ptr());
     }
-}
-
-#[allow(clippy::enum_variant_names)]
-enum Direction {
-    FromParent,
-    FromLeft,
-    FromRight,
 }
