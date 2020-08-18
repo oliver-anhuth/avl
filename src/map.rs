@@ -26,6 +26,18 @@ enum Direction {
     FromRight,
 }
 
+impl<K: Ord, V> Drop for AvlTreeMap<K, V> {
+    fn drop(&mut self) {
+        self.clear();
+    }
+}
+
+impl<K: Ord, V> Default for AvlTreeMap<K, V> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<K: Ord, V> AvlTreeMap<K, V> {
     /// Creates an empty map.
     /// No memory is allocated until the first item is inserted.
@@ -56,7 +68,9 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
 
     /// Clears the map, deallocating all memory.
     pub fn clear(&mut self) {
-        self.postorder(|node_ptr| unsafe { Node::destroy(node_ptr) });
+        self.postorder(|node_ptr| unsafe {
+            Node::destroy(node_ptr);
+        });
         self.root = None;
         self.num_nodes = 0;
     }
@@ -466,18 +480,6 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
                 }
             }
         }
-    }
-}
-
-impl<K: Ord, V> Drop for AvlTreeMap<K, V> {
-    fn drop(&mut self) {
-        self.clear();
-    }
-}
-
-impl<K: Ord, V> Default for AvlTreeMap<K, V> {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
