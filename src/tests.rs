@@ -336,6 +336,40 @@ fn test_map_iter() {
 }
 
 #[test]
+fn test_set_iter() {
+    use rand::{rngs::StdRng, Rng, SeedableRng};
+
+    let mut rng = StdRng::seed_from_u64(0);
+    let mut values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
+
+    let mut set = AvlTreeSet::new();
+    for value in &values {
+        set.insert(*value);
+    }
+
+    values.sort();
+    values.dedup();
+
+    let mut set_iter = set.iter();
+    for value in &values {
+        let value_in_set = set_iter.next();
+        assert!(value_in_set.is_some());
+        let &value_in_set = value_in_set.unwrap();
+        assert_eq!(value_in_set, *value);
+    }
+    assert!(set_iter.next().is_none());
+
+    let mut value_iter = values.iter();
+    for &value_in_set in &set {
+        let value = value_iter.next();
+        assert!(value.is_some());
+        let value = value.unwrap();
+        assert_eq!(value_in_set, *value);
+    }
+    assert!(value_iter.next().is_none());
+}
+
+#[test]
 #[ignore]
 fn test_large() {
     use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
