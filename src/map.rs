@@ -4,12 +4,12 @@ use std::cmp::{self, Ordering};
 use std::ptr::NonNull;
 
 /// A sorted map implemented with a nearly balanced binary search tree.
-pub struct AvlTreeMap<K: Ord, V> {
+pub struct Map<K: Ord, V> {
     root: Link<K, V>,
     num_nodes: usize,
 }
 
-/// An iterator over the entries of an AvlTreeMap.
+/// An iterator over the entries of a map.
 pub struct Iter<'a, K, V> {
     current: Link<K, V>,
     dir: Direction,
@@ -36,19 +36,7 @@ enum Direction {
     FromRight,
 }
 
-impl<K: Ord, V> Drop for AvlTreeMap<K, V> {
-    fn drop(&mut self) {
-        self.clear();
-    }
-}
-
-impl<K: Ord, V> Default for AvlTreeMap<K, V> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<K: Ord, V> AvlTreeMap<K, V> {
+impl<K: Ord, V> Map<K, V> {
     /// Creates an empty map.
     /// No memory is allocated until the first item is inserted.
     pub fn new() -> Self {
@@ -111,7 +99,9 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
                 *link_ptr.as_mut() = Some(Node::create(parent, key, value));
             }
             self.num_nodes += 1;
-            self.rebalance_once(parent);
+            if let Some(parent_ptr) = parent {
+                self.rebalance_once(parent_ptr);
+            }
             return true;
         }
         false
@@ -283,7 +273,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
                     // Parent is node to-unlink and has been replaced by smallest child
                     rebalance_from = min_child_ptr;
                 }
-                self.rebalance(Some(rebalance_from));
+                self.rebalance(rebalance_from);
             } else {
                 // Node to-unlink is stem or leaf, unlink from tree.
                 debug_assert!(node_ptr.as_ref().right.is_none());
@@ -299,7 +289,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
                             parent_ptr.as_mut().right = node_ptr.as_ref().left
                         }
                         // Parent node might be out of balance now
-                        self.rebalance(Some(parent_ptr));
+                        self.rebalance(parent_ptr);
                     }
                 }
             }
@@ -398,8 +388,8 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     }
 
     /// Rebalances nodes starting from given position up to the root node.
-    fn rebalance(&mut self, start_from: Link<K, V>) {
-        let mut current = start_from;
+    fn rebalance(&mut self, start_from: NodePtr<K, V>) {
+        let mut current = Some(start_from);
         while let Some(node_ptr) = current {
             let parent = unsafe { node_ptr.as_ref().parent };
             self.rebalance_node(node_ptr);
@@ -410,8 +400,8 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     /// Rebalances nodes starting from given position up to the root node.
     /// Stops after first rebalance operation.
     /// This is enough to restore balance after a single insert operation.
-    fn rebalance_once(&mut self, start_from: Link<K, V>) {
-        let mut current = start_from;
+    fn rebalance_once(&mut self, start_from: NodePtr<K, V>) {
+        let mut current = Some(start_from);
         while let Some(node_ptr) = current {
             let parent = unsafe { node_ptr.as_ref().parent };
             let did_rebalance = self.rebalance_node(node_ptr);
@@ -510,6 +500,18 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
                 }
             }
         }
+    }
+}
+
+impl<K: Ord, V> Drop for Map<K, V> {
+    fn drop(&mut self) {
+        self.clear();
+    }
+}
+
+impl<K: Ord, V> Default for Map<K, V> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

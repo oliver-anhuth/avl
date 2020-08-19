@@ -1,5 +1,5 @@
-pub use map::AvlTreeMap;
-pub use set::AvlTreeSet;
+pub use map::Map as AvlTreeMap;
+pub use set::Set as AvlTreeSet;
 
 mod map;
 mod set;

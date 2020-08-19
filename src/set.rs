@@ -1,17 +1,15 @@
-use super::map::AvlTreeMap;
+use super::map::Map;
 
 /// A sorted set implemented with a nearly balanced binary search tree.
-pub struct AvlTreeSet<T: Ord> {
-    tree: AvlTreeMap<T, ()>,
+pub struct Set<T: Ord> {
+    tree: Map<T, ()>,
 }
 
-impl<T: Ord> AvlTreeSet<T> {
+impl<T: Ord> Set<T> {
     /// Creates an empty set.
     /// No memory is allocated until the first item is inserted.
     pub fn new() -> Self {
-        Self {
-            tree: AvlTreeMap::new(),
-        }
+        Self { tree: Map::new() }
     }
 
     /// Returns true if the set contains no elements.
@@ -51,7 +49,7 @@ impl<T: Ord> AvlTreeSet<T> {
     }
 }
 
-impl<T: Ord> Default for AvlTreeSet<T> {
+impl<T: Ord> Default for Set<T> {
     fn default() -> Self {
         Self::new()
     }
