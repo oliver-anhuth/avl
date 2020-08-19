@@ -461,9 +461,14 @@ impl<K: Ord, V> Map<K, V> {
         }
     }
 
-    #[cfg(test)]
+    #[allow(dead_code)]
     fn preorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
         self.traverse(f, |_| {}, |_| {});
+    }
+
+    #[allow(dead_code)]
+    fn inorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
+        self.traverse(|_| {}, f, |_| {});
     }
 
     fn postorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
