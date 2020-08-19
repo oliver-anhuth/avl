@@ -532,9 +532,56 @@ impl<K: Ord, V> Node<K, V> {
     }
 }
 
+impl<'a, K, V> Iter<'a, K, V> {
+    fn find_next(&mut self) {
+        while let Some(node_ptr) = self.current {
+            match self.dir {
+                Direction::FromParent => {
+                    let left = unsafe { node_ptr.as_ref().left };
+                    if left.is_some() {
+                        self.current = left;
+                    } else {
+                        self.dir = Direction::FromLeft;
+                        break;
+                    }
+                }
+                Direction::FromLeft => {
+                    let right = unsafe { node_ptr.as_ref().right };
+                    if right.is_some() {
+                        self.current = right;
+                        self.dir = Direction::FromParent;
+                    } else {
+                        self.dir = Direction::FromRight;
+                    }
+                }
+                Direction::FromRight => {
+                    let from = self.current;
+                    let parent = unsafe { node_ptr.as_ref().parent };
+                    self.current = parent;
+                    if let Some(parent_ptr) = parent {
+                        if from == unsafe { parent_ptr.as_ref().left } {
+                            self.dir = Direction::FromLeft;
+                            break;
+                        } else {
+                            self.dir = Direction::FromRight;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
     fn next(&mut self) -> Option<Self::Item> {
-        None
+        match self.current {
+            None => None,
+            Some(node_ptr) => unsafe {
+                let current_ptr = node_ptr;
+                self.find_next();
+                Some((&(*current_ptr.as_ptr()).key, &(*current_ptr.as_ptr()).value))
+            },
+        }
     }
 }
