@@ -122,6 +122,7 @@ impl<K: Ord, V> Map<K, V> {
         None
     }
 
+    /// Gets an iterator over the entries of the map, sorted by key.
     pub fn iter(&self) -> Iter<K, V> {
         Iter {
             current: self.find_min(),
