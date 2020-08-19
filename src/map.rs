@@ -515,6 +515,18 @@ impl<K: Ord, V> Default for Map<K, V> {
     }
 }
 
+impl<'a, K, V> IntoIterator for &'a Map<K, V>
+where
+    K: 'a + Ord,
+    V: 'a,
+{
+    type Item = (&'a K, &'a V);
+    type IntoIter = Iter<'a, K, V>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 impl<K: Ord, V> Node<K, V> {
     unsafe fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
         let boxed = Box::new(Node {

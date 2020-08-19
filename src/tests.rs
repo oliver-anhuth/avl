@@ -322,6 +322,15 @@ fn test_map_iter() {
         assert_eq!(mapped, value.wrapping_add(42));
     }
     assert!(map_iter.next().is_none());
+
+    let mut value_iter = values.iter();
+    for (&key, &mapped) in &map {
+        let value = value_iter.next();
+        assert!(value.is_some());
+        let value = value.unwrap();
+        assert_eq!(key, *value);
+        assert_eq!(mapped, value.wrapping_add(42));
+    }
 }
 
 #[test]
