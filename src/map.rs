@@ -527,7 +527,7 @@ where
     }
 }
 
-impl<K: Ord, V> Node<K, V> {
+impl<K, V> Node<K, V> {
     unsafe fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
         let boxed = Box::new(Node {
             key,
