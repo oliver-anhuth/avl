@@ -1,6 +1,5 @@
-#![allow(dead_code)]
-
 use std::cmp::{self, Ordering};
+use std::marker::PhantomData;
 use std::ptr::NonNull;
 
 /// A sorted map implemented with a nearly balanced binary search tree.
@@ -11,16 +10,16 @@ pub struct Map<K: Ord, V> {
 
 /// An iterator over the entries of a map.
 pub struct Iter<'a, K, V> {
-    current: Link<K, V>,
-    dir: Direction,
-    _marker: std::marker::PhantomData<&'a Node<K, V>>,
+    node_iter: NodeIter<'a, K, V>,
 }
 
 /// A mutable iterator over the entries of a map.
 pub struct IterMut<'a, K, V> {
-    iter: Iter<'a, K, V>,
+    node_iter: NodeIter<'a, K, V>,
 }
 
+/// A node in the binary search tree, containing a key, a value, links to its left child,
+/// right child and parent node, and its height (== maximum number of links to a leaf node).
 struct Node<K, V> {
     key: K,
     value: V,
@@ -39,6 +38,12 @@ enum Direction {
     FromParent,
     FromLeft,
     FromRight,
+}
+
+struct NodeIter<'a, K, V> {
+    current: Link<K, V>,
+    dir: Direction,
+    marker: std::marker::PhantomData<&'a Node<K, V>>,
 }
 
 impl<K: Ord, V> Map<K, V> {
@@ -130,15 +135,15 @@ impl<K: Ord, V> Map<K, V> {
     /// Gets an iterator over the entries of the map, sorted by key.
     pub fn iter(&self) -> Iter<K, V> {
         Iter {
-            current: self.find_min(),
-            dir: Direction::FromLeft,
-            _marker: std::marker::PhantomData,
+            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
         }
     }
 
     /// Gets a mutable iterator over the entries of the map, sorted by key.
     pub fn iter_mut(&mut self) -> IterMut<K, V> {
-        IterMut { iter: self.iter() }
+        IterMut {
+            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+        }
     }
 
     #[cfg(test)]
@@ -561,8 +566,16 @@ impl<K, V> Node<K, V> {
     }
 }
 
-impl<'a, K, V> Iter<'a, K, V> {
-    fn find_next(&mut self) {
+impl<'a, K, V> NodeIter<'a, K, V> {
+    fn new(start: Link<K, V>, dir: Direction) -> Self {
+        Self {
+            current: start,
+            dir,
+            marker: PhantomData,
+        }
+    }
+
+    fn next(&mut self) {
         while let Some(node_ptr) = self.current {
             match self.dir {
                 Direction::FromParent => {
@@ -604,11 +617,11 @@ impl<'a, K, V> Iter<'a, K, V> {
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
     fn next(&mut self) -> Option<Self::Item> {
-        match self.current {
+        match self.node_iter.current {
             None => None,
             Some(node_ptr) => unsafe {
                 let current_ptr = node_ptr;
-                self.find_next();
+                self.node_iter.next();
                 Some((&(*current_ptr.as_ptr()).key, &(*current_ptr.as_ptr()).value))
             },
         }
@@ -618,11 +631,11 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
 impl<'a, K, V> Iterator for IterMut<'a, K, V> {
     type Item = (&'a K, &'a mut V);
     fn next(&mut self) -> Option<Self::Item> {
-        match self.iter.current {
+        match self.node_iter.current {
             None => None,
             Some(node_ptr) => unsafe {
                 let current_ptr = node_ptr;
-                self.iter.find_next();
+                self.node_iter.next();
                 Some((
                     &(*current_ptr.as_ptr()).key,
                     &mut (*current_ptr.as_ptr()).value,
