@@ -313,6 +313,7 @@ fn test_map_iter() {
 
     values.sort();
     values.dedup();
+
     let mut map_iter = map.iter();
     for value in &values {
         let kv = map_iter.next();
@@ -331,6 +332,7 @@ fn test_map_iter() {
         assert_eq!(key, *value);
         assert_eq!(mapped, value.wrapping_add(42));
     }
+    assert!(value_iter.next().is_none());
 }
 
 #[test]
