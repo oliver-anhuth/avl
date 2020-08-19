@@ -300,7 +300,7 @@ fn test_set() {
 }
 
 #[test]
-fn test_iter() {
+fn test_map_iter() {
     use rand::{rngs::StdRng, Rng, SeedableRng};
 
     let mut rng = StdRng::seed_from_u64(0);
@@ -317,9 +317,9 @@ fn test_iter() {
     for value in &values {
         let kv = map_iter.next();
         assert!(kv.is_some());
-        let kv = kv.unwrap();
-        assert_eq!(*kv.0, *value);
-        assert_eq!(*kv.1, value.wrapping_add(42));
+        let (&key, &mapped) = kv.unwrap();
+        assert_eq!(key, *value);
+        assert_eq!(mapped, value.wrapping_add(42));
     }
     assert!(map_iter.next().is_none());
 }
