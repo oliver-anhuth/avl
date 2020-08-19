@@ -16,6 +16,11 @@ pub struct Iter<'a, K, V> {
     _marker: std::marker::PhantomData<&'a Node<K, V>>,
 }
 
+/// A mutable iterator over the entries of a map.
+pub struct IterMut<'a, K, V> {
+    iter: Iter<'a, K, V>,
+}
+
 struct Node<K, V> {
     key: K,
     value: V,
@@ -129,6 +134,11 @@ impl<K: Ord, V> Map<K, V> {
             dir: Direction::FromLeft,
             _marker: std::marker::PhantomData,
         }
+    }
+
+    /// Gets a mutable iterator over the entries of the map, sorted by key.
+    pub fn iter_mut(&mut self) -> IterMut<K, V> {
+        IterMut { iter: self.iter() }
     }
 
     #[cfg(test)]
@@ -524,6 +534,14 @@ impl<'a, K: Ord, V> IntoIterator for &'a Map<K, V> {
     }
 }
 
+impl<'a, K: Ord, V> IntoIterator for &'a mut Map<K, V> {
+    type Item = (&'a K, &'a mut V);
+    type IntoIter = IterMut<'a, K, V>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
+    }
+}
+
 impl<K, V> Node<K, V> {
     unsafe fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
         let boxed = Box::new(Node {
@@ -592,6 +610,23 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
                 let current_ptr = node_ptr;
                 self.find_next();
                 Some((&(*current_ptr.as_ptr()).key, &(*current_ptr.as_ptr()).value))
+            },
+        }
+    }
+}
+
+impl<'a, K, V> Iterator for IterMut<'a, K, V> {
+    type Item = (&'a K, &'a mut V);
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.iter.current {
+            None => None,
+            Some(node_ptr) => unsafe {
+                let current_ptr = node_ptr;
+                self.iter.find_next();
+                Some((
+                    &(*current_ptr.as_ptr()).key,
+                    &mut (*current_ptr.as_ptr()).value,
+                ))
             },
         }
     }
