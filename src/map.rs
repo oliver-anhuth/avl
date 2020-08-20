@@ -103,6 +103,14 @@ impl<K: Ord, V> Map<K, V> {
         None
     }
 
+    /// Returns a mutable reference to the value corresponding to the key.
+    pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
+        if let Some(node_ptr) = self.find(key) {
+            return Some(&mut unsafe { &mut *node_ptr.as_ptr() }.value);
+        }
+        None
+    }
+
     /// Returns references to the key-value pair corresponding to the key.
     pub fn get_key_value(&self, key: &K) -> Option<(&K, &V)> {
         if let Some(node_ptr) = self.find(key) {

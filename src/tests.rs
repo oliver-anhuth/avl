@@ -218,6 +218,14 @@ fn test_get() {
         let got = map.get_key_value(value);
         assert_eq!(got, Some((value, &(value.wrapping_add(1)))));
     }
+
+    for value in &values {
+        let got = map.get_mut(value);
+        assert_eq!(got, Some(&mut (value.wrapping_add(1))));
+        *got.unwrap() = value.wrapping_add(2);
+        let got = map.get_key_value(value);
+        assert_eq!(got, Some((value, &(value.wrapping_add(2)))));
+    }
 }
 
 #[test]
