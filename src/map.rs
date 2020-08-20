@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::cmp::{self, Ordering};
 use std::marker::PhantomData;
 use std::ptr::NonNull;
@@ -9,12 +11,12 @@ pub struct Map<K: Ord, V> {
 }
 
 /// An iterator over the entries of a map.
-pub struct Iter<'a, K, V> {
+pub struct Iter<'a, K: Ord, V> {
     node_iter: NodeIter<'a, K, V>,
 }
 
 /// A mutable iterator over the entries of a map.
-pub struct IterMut<'a, K, V> {
+pub struct IterMut<'a, K: Ord, V> {
     node_iter: NodeIter<'a, K, V>,
 }
 
@@ -40,10 +42,14 @@ enum Direction {
     FromRight,
 }
 
-struct NodeIter<'a, K, V> {
+struct NodeIter<'a, K: Ord, V> {
     current: Link<K, V>,
     dir: Direction,
     marker: std::marker::PhantomData<&'a Node<K, V>>,
+}
+
+struct NodeEater<K: Ord, V> {
+    root: Link<K, V>,
 }
 
 impl<K: Ord, V> Map<K, V> {
@@ -133,17 +139,23 @@ impl<K: Ord, V> Map<K, V> {
     }
 
     /// Gets an iterator over the entries of the map, sorted by key.
-    pub fn iter(&self) -> Iter<K, V> {
+    pub fn iter(&self) -> Iter<'_, K, V> {
         Iter {
             node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
         }
     }
 
     /// Gets a mutable iterator over the entries of the map, sorted by key.
-    pub fn iter_mut(&mut self) -> IterMut<K, V> {
+    pub fn iter_mut(&mut self) -> IterMut<'_, K, V> {
         IterMut {
             node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
         }
+    }
+
+    fn into_iter(mut self) {
+        let _node_eater = NodeEater {
+            root: self.root.take(),
+        };
     }
 
     #[cfg(test)]
@@ -463,25 +475,30 @@ impl<K: Ord, V> Map<K, V> {
 
     #[allow(dead_code)]
     fn preorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
-        self.traverse(f, |_| {}, |_| {});
+        Self::traverse(self.root, f, |_| {}, |_| {});
     }
 
     #[allow(dead_code)]
     fn inorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
-        self.traverse(|_| {}, f, |_| {});
+        Self::traverse(self.root, |_| {}, f, |_| {});
     }
 
     fn postorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
-        self.traverse(|_| {}, |_| {}, f);
+        Self::traverse(self.root, |_| {}, |_| {}, f);
     }
 
-    fn traverse<Pre, In, Post>(&self, mut preorder: Pre, mut inorder: In, mut postorder: Post)
-    where
+    fn traverse<Pre, In, Post>(
+        root: Link<K, V>,
+        mut preorder: Pre,
+        mut inorder: In,
+        mut postorder: Post,
+    ) where
         Pre: FnMut(NodePtr<K, V>),
         In: FnMut(NodePtr<K, V>),
         Post: FnMut(NodePtr<K, V>),
     {
-        if let Some(mut node_ptr) = self.root {
+        if let Some(mut node_ptr) = root {
+            debug_assert!(unsafe { node_ptr.as_ref().parent }.is_none());
             let mut dir = Direction::FromParent;
             loop {
                 match dir {
@@ -571,7 +588,7 @@ impl<K, V> Node<K, V> {
     }
 }
 
-impl<'a, K, V> NodeIter<'a, K, V> {
+impl<'a, K: Ord, V> NodeIter<'a, K, V> {
     fn new(start: Link<K, V>, dir: Direction) -> Self {
         Self {
             current: start,
@@ -619,7 +636,7 @@ impl<'a, K, V> NodeIter<'a, K, V> {
     }
 }
 
-impl<'a, K, V> Iterator for Iter<'a, K, V> {
+impl<'a, K: Ord, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
     fn next(&mut self) -> Option<Self::Item> {
         match self.node_iter.current {
@@ -633,7 +650,7 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
     }
 }
 
-impl<'a, K, V> Iterator for IterMut<'a, K, V> {
+impl<'a, K: Ord, V> Iterator for IterMut<'a, K, V> {
     type Item = (&'a K, &'a mut V);
     fn next(&mut self) -> Option<Self::Item> {
         match self.node_iter.current {
@@ -647,5 +664,33 @@ impl<'a, K, V> Iterator for IterMut<'a, K, V> {
                 ))
             },
         }
+    }
+}
+
+impl<K: Ord, V> NodeEater<K, V> {
+    fn postorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
+        Map::traverse(self.root, |_| {}, |_| {}, f);
+    }
+}
+
+impl<K: Ord, V> Drop for NodeEater<K, V> {
+    fn drop(&mut self) {
+        self.postorder(|node_ptr| unsafe {
+            Node::destroy(node_ptr);
+        });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Map;
+
+    #[test]
+    fn test_node_eater() {
+        let mut map = Map::new();
+        for i in 0_i32..100 {
+            map.insert(i, i + 1);
+        }
+        map.into_iter();
     }
 }

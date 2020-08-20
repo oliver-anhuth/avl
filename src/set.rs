@@ -7,7 +7,7 @@ pub struct Set<T: Ord> {
 }
 
 /// An iterator over the entries of a set.
-pub struct Iter<'a, T> {
+pub struct Iter<'a, T: Ord> {
     map_iter: MapIter<'a, T, ()>,
 }
 
@@ -76,7 +76,7 @@ impl<'a, T: Ord> IntoIterator for &'a Set<T> {
     }
 }
 
-impl<'a, T> Iterator for Iter<'a, T> {
+impl<'a, T: Ord> Iterator for Iter<'a, T> {
     type Item = &'a T;
     fn next(&mut self) -> Option<Self::Item> {
         self.map_iter.next().map(|item| item.0)
