@@ -352,7 +352,17 @@ fn test_map_iter() {
         let value = value.unwrap();
         assert_eq!(key, *value);
         assert_eq!(*mapped_mut, value.wrapping_sub(42));
-        *mapped_mut = 42;
+        *mapped_mut = *value;
+    }
+    assert!(value_iter.next().is_none());
+
+    let mut value_iter = values.iter();
+    for (key, mapped) in map.into_iter() {
+        let value = value_iter.next();
+        assert!(value.is_some());
+        let value = value.unwrap();
+        assert_eq!(key, *value);
+        assert_eq!(mapped, *value);
     }
     assert!(value_iter.next().is_none());
 }
