@@ -12,12 +12,12 @@ pub struct Map<K: Ord, V> {
 
 /// An iterator over the entries of a map.
 pub struct Iter<'a, K: Ord, V> {
-    node_iter: NodeIter<'a, K, V>,
+    next: NodeIter<'a, K, V>,
 }
 
 /// A mutable iterator over the entries of a map.
 pub struct IterMut<'a, K: Ord, V> {
-    node_iter: NodeIter<'a, K, V>,
+    next: NodeIter<'a, K, V>,
 }
 
 /// A node in the binary search tree, containing a key, a value, links to its left child,
@@ -43,12 +43,13 @@ enum Direction {
 }
 
 struct NodeIter<'a, K: Ord, V> {
-    current: Link<K, V>,
+    next: Link<K, V>,
     dir: Direction,
     marker: std::marker::PhantomData<&'a Node<K, V>>,
 }
 
 struct NodeEater<K: Ord, V> {
+    next: Link<K, V>,
     root: Link<K, V>,
 }
 
@@ -131,7 +132,7 @@ impl<K: Ord, V> Map<K, V> {
             debug_assert!(self.num_nodes > 0);
             self.num_nodes -= 1;
             self.unlink_node(node_ptr);
-            let value = unsafe { Node::destroy(node_ptr) };
+            let value = unsafe { Node::destroy(node_ptr).1 };
             debug_assert!(self.find(key).is_none());
             return Some(value);
         }
@@ -141,21 +142,19 @@ impl<K: Ord, V> Map<K, V> {
     /// Gets an iterator over the entries of the map, sorted by key.
     pub fn iter(&self) -> Iter<'_, K, V> {
         Iter {
-            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+            next: NodeIter::new(self.find_min(), Direction::FromLeft),
         }
     }
 
     /// Gets a mutable iterator over the entries of the map, sorted by key.
     pub fn iter_mut(&mut self) -> IterMut<'_, K, V> {
         IterMut {
-            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+            next: NodeIter::new(self.find_min(), Direction::FromLeft),
         }
     }
 
-    fn into_iter(mut self) {
-        let _node_eater = NodeEater {
-            root: self.root.take(),
-        };
+    fn into_iter(self) -> NodeEater<K, V> {
+        NodeEater::new(self)
     }
 
     #[cfg(test)]
@@ -569,6 +568,37 @@ impl<'a, K: Ord, V> IntoIterator for &'a mut Map<K, V> {
     }
 }
 
+impl<'a, K: Ord, V> Iterator for Iter<'a, K, V> {
+    type Item = (&'a K, &'a V);
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.next.next {
+            None => None,
+            Some(node_ptr) => unsafe {
+                let current_ptr = node_ptr;
+                self.next.next();
+                Some((&(*current_ptr.as_ptr()).key, &(*current_ptr.as_ptr()).value))
+            },
+        }
+    }
+}
+
+impl<'a, K: Ord, V> Iterator for IterMut<'a, K, V> {
+    type Item = (&'a K, &'a mut V);
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.next.next {
+            None => None,
+            Some(node_ptr) => unsafe {
+                let current_ptr = node_ptr;
+                self.next.next();
+                Some((
+                    &(*current_ptr.as_ptr()).key,
+                    &mut (*current_ptr.as_ptr()).value,
+                ))
+            },
+        }
+    }
+}
+
 impl<K, V> Node<K, V> {
     unsafe fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
         let boxed = Box::new(Node {
@@ -582,28 +612,28 @@ impl<K, V> Node<K, V> {
         NodePtr::new_unchecked(Box::into_raw(boxed))
     }
 
-    unsafe fn destroy(node_ptr: NodePtr<K, V>) -> V {
+    unsafe fn destroy(node_ptr: NodePtr<K, V>) -> (K, V) {
         let boxed = Box::from_raw(node_ptr.as_ptr());
-        boxed.value
+        (boxed.key, boxed.value)
     }
 }
 
 impl<'a, K: Ord, V> NodeIter<'a, K, V> {
     fn new(start: Link<K, V>, dir: Direction) -> Self {
         Self {
-            current: start,
+            next: start,
             dir,
             marker: PhantomData,
         }
     }
 
     fn next(&mut self) {
-        while let Some(node_ptr) = self.current {
+        while let Some(node_ptr) = self.next {
             match self.dir {
                 Direction::FromParent => {
                     let left = unsafe { node_ptr.as_ref().left };
                     if left.is_some() {
-                        self.current = left;
+                        self.next = left;
                     } else {
                         self.dir = Direction::FromLeft;
                         break;
@@ -612,16 +642,16 @@ impl<'a, K: Ord, V> NodeIter<'a, K, V> {
                 Direction::FromLeft => {
                     let right = unsafe { node_ptr.as_ref().right };
                     if right.is_some() {
-                        self.current = right;
+                        self.next = right;
                         self.dir = Direction::FromParent;
                     } else {
                         self.dir = Direction::FromRight;
                     }
                 }
                 Direction::FromRight => {
-                    let from = self.current;
+                    let from = self.next;
                     let parent = unsafe { node_ptr.as_ref().parent };
-                    self.current = parent;
+                    self.next = parent;
                     if let Some(parent_ptr) = parent {
                         if from == unsafe { parent_ptr.as_ref().left } {
                             self.dir = Direction::FromLeft;
@@ -636,38 +666,28 @@ impl<'a, K: Ord, V> NodeIter<'a, K, V> {
     }
 }
 
-impl<'a, K: Ord, V> Iterator for Iter<'a, K, V> {
-    type Item = (&'a K, &'a V);
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.node_iter.current {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let current_ptr = node_ptr;
-                self.node_iter.next();
-                Some((&(*current_ptr.as_ptr()).key, &(*current_ptr.as_ptr()).value))
-            },
-        }
-    }
-}
-
-impl<'a, K: Ord, V> Iterator for IterMut<'a, K, V> {
-    type Item = (&'a K, &'a mut V);
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.node_iter.current {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let current_ptr = node_ptr;
-                self.node_iter.next();
-                Some((
-                    &(*current_ptr.as_ptr()).key,
-                    &mut (*current_ptr.as_ptr()).value,
-                ))
-            },
-        }
-    }
-}
-
 impl<K: Ord, V> NodeEater<K, V> {
+    fn new(mut map: Map<K, V>) -> Self {
+        Self {
+            next: map.find_min(),
+            root: map.root.take(),
+        }
+    }
+
+    fn munch(&mut self) {
+        if let Some(node_ptr) = self.next {
+            unsafe {
+                match node_ptr.as_ref().parent {
+                    None => self.root = None,
+                    Some(mut parent_ptr) => {
+                        parent_ptr.as_mut().left = node_ptr.as_ref().right;
+                    }
+                }
+                Node::destroy(node_ptr);
+            }
+        }
+    }
+
     fn postorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
         Map::traverse(self.root, |_| {}, |_| {}, f);
     }
@@ -691,6 +711,8 @@ mod tests {
         for i in 0_i32..100 {
             map.insert(i, i + 1);
         }
-        map.into_iter();
+        let mut iter = map.into_iter();
+        assert!(iter.next.is_some());
+        iter.munch();
     }
 }

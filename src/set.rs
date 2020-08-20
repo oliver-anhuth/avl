@@ -8,7 +8,7 @@ pub struct Set<T: Ord> {
 
 /// An iterator over the entries of a set.
 pub struct Iter<'a, T: Ord> {
-    map_iter: MapIter<'a, T, ()>,
+    next: MapIter<'a, T, ()>,
 }
 
 impl<T: Ord> Set<T> {
@@ -52,7 +52,7 @@ impl<T: Ord> Set<T> {
     /// Gets an iterator over the values of the map in sorted order.
     pub fn iter(&self) -> Iter<T> {
         Iter {
-            map_iter: self.map.iter(),
+            next: self.map.iter(),
         }
     }
 
@@ -79,6 +79,6 @@ impl<'a, T: Ord> IntoIterator for &'a Set<T> {
 impl<'a, T: Ord> Iterator for Iter<'a, T> {
     type Item = &'a T;
     fn next(&mut self) -> Option<Self::Item> {
-        self.map_iter.next().map(|item| item.0)
+        self.next.next().map(|item| item.0)
     }
 }
