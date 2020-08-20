@@ -15,8 +15,23 @@ pub struct Iter<'a, K: Ord, V> {
     node_iter: NodeIter<'a, K, V>,
 }
 
+/// An iterator over the keys of a map.
+pub struct Keys<'a, K: Ord, V> {
+    node_iter: NodeIter<'a, K, V>,
+}
+
+/// An iterator over the values of a map.
+pub struct Values<'a, K: Ord, V> {
+    node_iter: NodeIter<'a, K, V>,
+}
+
 /// A mutable iterator over the entries of a map.
 pub struct IterMut<'a, K: Ord, V> {
+    node_iter: NodeIter<'a, K, V>,
+}
+
+/// An iterator over the values of a map.
+pub struct ValuesMut<'a, K: Ord, V> {
     node_iter: NodeIter<'a, K, V>,
 }
 
@@ -155,6 +170,27 @@ impl<K: Ord, V> Map<K, V> {
     /// Gets an iterator over the entries of the map, sorted by key.
     pub fn iter(&self) -> Iter<'_, K, V> {
         Iter {
+            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+        }
+    }
+
+    /// Gets an iterator over the keys of the map, in sorted order.
+    pub fn keys(&self) -> Keys<'_, K, V> {
+        Keys {
+            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+        }
+    }
+
+    /// Gets an iterator over the values of the map, in order by key.
+    pub fn values(&self) -> Values<'_, K, V> {
+        Values {
+            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+        }
+    }
+
+    /// Gets a mutable iterator over the values of the map, in order by key.
+    pub fn values_mut(&self) -> ValuesMut<'_, K, V> {
+        ValuesMut {
             node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
         }
     }
@@ -601,6 +637,34 @@ impl<'a, K: Ord, V> Iterator for Iter<'a, K, V> {
     }
 }
 
+impl<'a, K: Ord, V> Iterator for Keys<'a, K, V> {
+    type Item = &'a K;
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.node_iter.next {
+            None => None,
+            Some(node_ptr) => unsafe {
+                let current_ptr = node_ptr;
+                self.node_iter.next();
+                Some(&(*current_ptr.as_ptr()).key)
+            },
+        }
+    }
+}
+
+impl<'a, K: Ord, V> Iterator for Values<'a, K, V> {
+    type Item = &'a V;
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.node_iter.next {
+            None => None,
+            Some(node_ptr) => unsafe {
+                let current_ptr = node_ptr;
+                self.node_iter.next();
+                Some(&(*current_ptr.as_ptr()).value)
+            },
+        }
+    }
+}
+
 impl<'a, K: Ord, V> Iterator for IterMut<'a, K, V> {
     type Item = (&'a K, &'a mut V);
     fn next(&mut self) -> Option<Self::Item> {
@@ -613,6 +677,20 @@ impl<'a, K: Ord, V> Iterator for IterMut<'a, K, V> {
                     &(*current_ptr.as_ptr()).key,
                     &mut (*current_ptr.as_ptr()).value,
                 ))
+            },
+        }
+    }
+}
+
+impl<'a, K: Ord, V> Iterator for ValuesMut<'a, K, V> {
+    type Item = &'a mut V;
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.node_iter.next {
+            None => None,
+            Some(node_ptr) => unsafe {
+                let current_ptr = node_ptr;
+                self.node_iter.next();
+                Some(&mut (*current_ptr.as_ptr()).value)
             },
         }
     }
@@ -745,6 +823,7 @@ impl<K: Ord, V> NodeEater<K, V> {
 }
 
 impl<K: Ord, V> Drop for NodeEater<K, V> {
+    /// Drops all nodes which have not been consumed.
     fn drop(&mut self) {
         self.postorder(|node_ptr| unsafe {
             Node::destroy(node_ptr);

@@ -342,6 +342,24 @@ fn test_map_iter() {
     }
     assert!(value_iter.next().is_none());
 
+    let mut key_iter = map.keys();
+    for value in &values {
+        let key = key_iter.next();
+        assert!(key.is_some());
+        let &key = key.unwrap();
+        assert_eq!(key, *value);
+    }
+    assert!(map_iter.next().is_none());
+
+    let mut mapped_iter = map.values();
+    for value in &values {
+        let mapped = mapped_iter.next();
+        assert!(mapped.is_some());
+        let &mapped = mapped.unwrap();
+        assert_eq!(mapped, value.wrapping_add(42));
+    }
+    assert!(map_iter.next().is_none());
+
     let mut map_iter_mut = map.iter_mut();
     for value in &values {
         let kv = map_iter_mut.next();
