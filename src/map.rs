@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use std::cmp::{self, Ordering};
+use std::fmt;
 use std::marker::PhantomData;
 use std::ptr::NonNull;
 
@@ -608,6 +609,16 @@ impl<K, V> Drop for Map<K, V> {
 impl<K: Ord, V> Default for Map<K, V> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<K, V> fmt::Debug for Map<K, V>
+where
+    K: fmt::Debug,
+    V: fmt::Debug,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_map().entries(self.iter()).finish()
     }
 }
 

@@ -1,3 +1,5 @@
+use std::fmt;
+
 use super::map::{IntoIter as MapIntoIter, Iter as MapIter, Map};
 
 /// A sorted set implemented with a nearly balanced binary search tree.
@@ -79,6 +81,12 @@ impl<T> Set<T> {
 impl<T: Ord> Default for Set<T> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for Set<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_set().entries(self.iter()).finish()
     }
 }
 

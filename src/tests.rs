@@ -5,17 +5,37 @@ const LARGE_N: i32 = 10_000_000;
 
 #[test]
 fn test_new() {
-    let map_i32 = AvlTreeMap::<i32, ()>::new();
+    let map_i32: AvlTreeMap<i32, ()> = AvlTreeMap::new();
     assert!(map_i32.is_empty());
     map_i32.check_consistency();
+    assert_eq!(format!("{:?}", map_i32), String::from("{}"));
 
-    let map_i8 = AvlTreeMap::<i8, ()>::new();
+    let mut map_i8 = AvlTreeMap::<i8, &str>::new();
     assert!(map_i8.is_empty());
+    map_i8.insert(0, "foo");
+    map_i8.insert(1, "bar");
+    map_i8.insert(2, "baz");
     map_i8.check_consistency();
+    assert_eq!(
+        format!("{:?}", map_i8),
+        String::from(r#"{0: "foo", 1: "bar", 2: "baz"}"#)
+    );
 
-    let map_string = AvlTreeMap::<String, String>::new();
+    let map_string: AvlTreeMap<String, String> = AvlTreeMap::default();
     assert!(map_string.is_empty());
     map_string.check_consistency();
+
+    let set_i32: AvlTreeSet<i32> = AvlTreeSet::new();
+    assert!(set_i32.is_empty());
+    assert_eq!(format!("{:?}", set_i32), String::from("{}"));
+
+    let mut set_i8 = AvlTreeSet::<i8>::new();
+    assert!(set_i8.is_empty());
+    set_i8.insert(1);
+    set_i8.insert(2);
+    set_i8.insert(0);
+    set_i8.check_consistency();
+    assert_eq!(format!("{:?}", set_i8), String::from("{0, 1, 2}"));
 }
 
 #[test]
