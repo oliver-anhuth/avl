@@ -155,14 +155,20 @@ impl<K: Ord, V> Map<K, V> {
     /// Removes a key from the map.
     /// Returns the value at the key if the key was previously in the map.
     pub fn remove(&mut self, key: &K) -> Option<V> {
+        self.remove_entry(key).map(|(_, v)| v)
+    }
+
+    /// Removes a key from the map.
+    /// Returns the stored key and value if the key was previously in the map.
+    pub fn remove_entry(&mut self, key: &K) -> Option<(K, V)> {
         // Find node to-be-removed
         if let Some(node_ptr) = self.find(key) {
             debug_assert!(self.num_nodes > 0);
             self.num_nodes -= 1;
             self.unlink_node(node_ptr);
-            let value = unsafe { Node::destroy(node_ptr).1 };
+            let kv = unsafe { Node::destroy(node_ptr) };
             debug_assert!(self.find(key).is_none());
-            return Some(value);
+            return Some(kv);
         }
         None
     }
