@@ -383,7 +383,7 @@ fn test_map_iter() {
     assert!(value_iter.next().is_none());
 
     let mut value_iter = values.iter();
-    for (key, mapped) in map.into_iter() {
+    for (key, mapped) in map {
         let value = value_iter.next();
         assert!(value.is_some());
         let value = value.unwrap();
@@ -423,6 +423,15 @@ fn test_set_iter() {
         assert!(value.is_some());
         let value = value.unwrap();
         assert_eq!(value_in_set, *value);
+    }
+    assert!(value_iter.next().is_none());
+
+    let mut value_iter = values.iter();
+    for key in set {
+        let value = value_iter.next();
+        assert!(value.is_some());
+        let value = value.unwrap();
+        assert_eq!(key, *value);
     }
     assert!(value_iter.next().is_none());
 }

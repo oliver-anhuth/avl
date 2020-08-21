@@ -1,14 +1,18 @@
-use super::map::Iter as MapIter;
-use super::map::Map;
+use super::map::{IntoIter as MapIntoIter, Iter as MapIter, Map};
 
 /// A sorted set implemented with a nearly balanced binary search tree.
 pub struct Set<T: Ord> {
     map: Map<T, ()>,
 }
 
-/// An iterator over the entries of a set.
+/// An iterator over the values of a set.
 pub struct Iter<'a, T: Ord> {
-    next: MapIter<'a, T, ()>,
+    map_iter: MapIter<'a, T, ()>,
+}
+
+/// An owning iterator over the values of a set.
+pub struct IntoIter<T: Ord> {
+    map_into_iter: MapIntoIter<T, ()>,
 }
 
 impl<T: Ord> Set<T> {
@@ -52,7 +56,7 @@ impl<T: Ord> Set<T> {
     /// Gets an iterator over the values of the map in sorted order.
     pub fn iter(&self) -> Iter<T> {
         Iter {
-            next: self.map.iter(),
+            map_iter: self.map.iter(),
         }
     }
 
@@ -76,9 +80,26 @@ impl<'a, T: Ord> IntoIterator for &'a Set<T> {
     }
 }
 
+impl<T: Ord> IntoIterator for Set<T> {
+    type Item = T;
+    type IntoIter = IntoIter<T>;
+    fn into_iter(self) -> Self::IntoIter {
+        Self::IntoIter {
+            map_into_iter: self.map.into_iter(),
+        }
+    }
+}
+
 impl<'a, T: Ord> Iterator for Iter<'a, T> {
     type Item = &'a T;
     fn next(&mut self) -> Option<Self::Item> {
-        self.next.next().map(|item| item.0)
+        self.map_iter.next().map(|item| item.0)
+    }
+}
+
+impl<T: Ord> Iterator for IntoIter<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.map_into_iter.next().map(|(k, _)| k)
     }
 }
