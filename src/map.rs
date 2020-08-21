@@ -178,35 +178,35 @@ impl<K, V> Map<K, V> {
 
 impl<K, V> Map<K, V> {
     /// Gets an iterator over the entries of the map, sorted by key.
-    pub fn iter(&self) -> Iter<'_, K, V> {
+    pub fn iter<'a>(&'a self) -> Iter<'a, K, V> {
         Iter {
             node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
         }
     }
 
     /// Gets an iterator over the keys of the map, in sorted order.
-    pub fn keys(&self) -> Keys<'_, K, V> {
+    pub fn keys<'a>(&'a self) -> Keys<'a, K, V> {
         Keys {
             node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
         }
     }
 
     /// Gets an iterator over the values of the map, in order by key.
-    pub fn values(&self) -> Values<'_, K, V> {
+    pub fn values<'a>(&'a self) -> Values<'a, K, V> {
         Values {
             node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
         }
     }
 
     /// Gets a mutable iterator over the values of the map, in order by key.
-    pub fn values_mut(&self) -> ValuesMut<'_, K, V> {
+    pub fn values_mut<'a>(&'a self) -> ValuesMut<'a, K, V> {
         ValuesMut {
             node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
         }
     }
 
     /// Gets a mutable iterator over the entries of the map, sorted by key.
-    pub fn iter_mut(&mut self) -> IterMut<'_, K, V> {
+    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, K, V> {
         IterMut {
             node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
         }

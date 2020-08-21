@@ -69,7 +69,7 @@ impl<T> Set<T> {
     }
 
     /// Gets an iterator over the values of the map in sorted order.
-    pub fn iter(&self) -> Iter<T> {
+    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
         Iter {
             map_iter: self.map.iter(),
         }
