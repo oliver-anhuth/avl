@@ -53,6 +53,12 @@ impl<T: Ord> Set<T> {
         self.map.remove(value).is_some()
     }
 
+    /// Removes a value from the set.
+    /// Returns the value if it was previously in the set.
+    pub fn take(&mut self, value: &T) -> Option<T> {
+        self.map.remove_entry(value).map(|(k, _)| k)
+    }
+
     /// Gets an iterator over the values of the map in sorted order.
     pub fn iter(&self) -> Iter<T> {
         Iter {
