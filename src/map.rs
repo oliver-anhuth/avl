@@ -10,6 +10,28 @@ pub struct Map<K: Ord, V> {
     num_nodes: usize,
 }
 
+/// A node in the binary search tree, containing a key, a value, links to its left child,
+/// right child and parent node, and its height (== maximum number of links to a leaf node).
+struct Node<K, V> {
+    key: K,
+    value: V,
+    left: Link<K, V>,
+    right: Link<K, V>,
+    parent: Link<K, V>,
+    height: usize,
+}
+
+type NodePtr<K, V> = NonNull<Node<K, V>>;
+type Link<K, V> = Option<NodePtr<K, V>>;
+type LinkPtr<K, V> = NonNull<Link<K, V>>;
+
+#[allow(clippy::enum_variant_names)]
+enum Direction {
+    FromParent,
+    FromLeft,
+    FromRight,
+}
+
 /// An iterator over the entries of a map.
 pub struct Iter<'a, K: Ord, V> {
     node_iter: NodeIter<'a, K, V>,
@@ -38,28 +60,6 @@ pub struct ValuesMut<'a, K: Ord, V> {
 /// An owning iterator over the entries of a map.
 pub struct IntoIter<K: Ord, V> {
     node_eater: NodeEater<K, V>,
-}
-
-/// A node in the binary search tree, containing a key, a value, links to its left child,
-/// right child and parent node, and its height (== maximum number of links to a leaf node).
-struct Node<K, V> {
-    key: K,
-    value: V,
-    left: Link<K, V>,
-    right: Link<K, V>,
-    parent: Link<K, V>,
-    height: usize,
-}
-
-type NodePtr<K, V> = NonNull<Node<K, V>>;
-type Link<K, V> = Option<NodePtr<K, V>>;
-type LinkPtr<K, V> = NonNull<Link<K, V>>;
-
-#[allow(clippy::enum_variant_names)]
-enum Direction {
-    FromParent,
-    FromLeft,
-    FromRight,
 }
 
 struct NodeIter<'a, K: Ord, V> {
@@ -623,6 +623,25 @@ impl<K: Ord, V> IntoIterator for Map<K, V> {
     }
 }
 
+impl<K, V> Node<K, V> {
+    unsafe fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
+        let boxed = Box::new(Node {
+            key,
+            value,
+            parent,
+            left: None,
+            right: None,
+            height: 0,
+        });
+        NodePtr::new_unchecked(Box::into_raw(boxed))
+    }
+
+    unsafe fn destroy(node_ptr: NodePtr<K, V>) -> (K, V) {
+        let boxed = Box::from_raw(node_ptr.as_ptr());
+        (boxed.key, boxed.value)
+    }
+}
+
 impl<'a, K: Ord, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
     fn next(&mut self) -> Option<Self::Item> {
@@ -700,25 +719,6 @@ impl<K: Ord, V> Iterator for IntoIter<K, V> {
     type Item = (K, V);
     fn next(&mut self) -> Option<Self::Item> {
         self.node_eater.munch()
-    }
-}
-
-impl<K, V> Node<K, V> {
-    unsafe fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
-        let boxed = Box::new(Node {
-            key,
-            value,
-            parent,
-            left: None,
-            right: None,
-            height: 0,
-        });
-        NodePtr::new_unchecked(Box::into_raw(boxed))
-    }
-
-    unsafe fn destroy(node_ptr: NodePtr<K, V>) -> (K, V) {
-        let boxed = Box::from_raw(node_ptr.as_ptr());
-        (boxed.key, boxed.value)
     }
 }
 
