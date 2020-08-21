@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use std::ptr::NonNull;
 
 /// A sorted map implemented with a nearly balanced binary search tree.
-pub struct Map<K: Ord, V> {
+pub struct Map<K, V> {
     root: Link<K, V>,
     num_nodes: usize,
 }
@@ -33,42 +33,42 @@ enum Direction {
 }
 
 /// An iterator over the entries of a map.
-pub struct Iter<'a, K: Ord, V> {
+pub struct Iter<'a, K, V> {
     node_iter: NodeIter<'a, K, V>,
 }
 
 /// An iterator over the keys of a map.
-pub struct Keys<'a, K: Ord, V> {
+pub struct Keys<'a, K, V> {
     node_iter: NodeIter<'a, K, V>,
 }
 
 /// An iterator over the values of a map.
-pub struct Values<'a, K: Ord, V> {
+pub struct Values<'a, K, V> {
     node_iter: NodeIter<'a, K, V>,
 }
 
 /// A mutable iterator over the entries of a map.
-pub struct IterMut<'a, K: Ord, V> {
+pub struct IterMut<'a, K, V> {
     node_iter: NodeIter<'a, K, V>,
 }
 
 /// An iterator over the values of a map.
-pub struct ValuesMut<'a, K: Ord, V> {
+pub struct ValuesMut<'a, K, V> {
     node_iter: NodeIter<'a, K, V>,
 }
 
 /// An owning iterator over the entries of a map.
-pub struct IntoIter<K: Ord, V> {
+pub struct IntoIter<K, V> {
     node_eater: NodeEater<K, V>,
 }
 
-struct NodeIter<'a, K: Ord, V> {
+struct NodeIter<'a, K, V> {
     next: Link<K, V>,
     dir: Direction,
     marker: std::marker::PhantomData<&'a Node<K, V>>,
 }
 
-struct NodeEater<K: Ord, V> {
+struct NodeEater<K, V> {
     next: Link<K, V>,
     root: Link<K, V>,
 }
@@ -81,33 +81,6 @@ impl<K: Ord, V> Map<K, V> {
             root: None,
             num_nodes: 0,
         }
-    }
-
-    /// Returns true if the map contains no elements.
-    pub fn is_empty(&self) -> bool {
-        self.root.is_none()
-    }
-
-    /// Returns the number of elements in the map.
-    pub fn len(&self) -> usize {
-        self.num_nodes
-    }
-
-    #[cfg(test)]
-    pub fn height(&self) -> usize {
-        match self.root {
-            None => 0,
-            Some(root_ptr) => unsafe { root_ptr.as_ref().height },
-        }
-    }
-
-    /// Clears the map, deallocating all memory.
-    pub fn clear(&mut self) {
-        self.postorder(|node_ptr| unsafe {
-            Node::destroy(node_ptr);
-        });
-        self.root = None;
-        self.num_nodes = 0;
     }
 
     /// Returns a reference to the value corresponding to the key.
@@ -172,7 +145,38 @@ impl<K: Ord, V> Map<K, V> {
         }
         None
     }
+}
 
+impl<K, V> Map<K, V> {
+    /// Returns true if the map contains no elements.
+    pub fn is_empty(&self) -> bool {
+        self.root.is_none()
+    }
+
+    /// Returns the number of elements in the map.
+    pub fn len(&self) -> usize {
+        self.num_nodes
+    }
+
+    #[cfg(test)]
+    pub fn height(&self) -> usize {
+        match self.root {
+            None => 0,
+            Some(root_ptr) => unsafe { root_ptr.as_ref().height },
+        }
+    }
+
+    /// Clears the map, deallocating all memory.
+    pub fn clear(&mut self) {
+        self.postorder(|node_ptr| unsafe {
+            Node::destroy(node_ptr);
+        });
+        self.root = None;
+        self.num_nodes = 0;
+    }
+}
+
+impl<K, V> Map<K, V> {
     /// Gets an iterator over the entries of the map, sorted by key.
     pub fn iter(&self) -> Iter<'_, K, V> {
         Iter {
@@ -207,7 +211,9 @@ impl<K: Ord, V> Map<K, V> {
             node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
         }
     }
+}
 
+impl<K: Ord, V> Map<K, V> {
     #[cfg(test)]
     pub fn check_consistency(&self) {
         unsafe {
@@ -268,18 +274,6 @@ impl<K: Ord, V> Map<K, V> {
         current
     }
 
-    fn find_min(&self) -> Link<K, V> {
-        if let Some(mut min_ptr) = self.root {
-            unsafe {
-                while let Some(left_ptr) = min_ptr.as_ref().left {
-                    min_ptr = left_ptr;
-                }
-                return Some(min_ptr);
-            }
-        }
-        None
-    }
-
     fn find_insert_pos(&mut self, key: &K) -> Option<(Link<K, V>, LinkPtr<K, V>)> {
         let mut parent: Link<K, V> = None;
         let mut link_ptr: LinkPtr<K, V> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
@@ -298,6 +292,20 @@ impl<K: Ord, V> Map<K, V> {
             }
         }
         Some((parent, link_ptr))
+    }
+}
+
+impl<K, V> Map<K, V> {
+    fn find_min(&self) -> Link<K, V> {
+        if let Some(mut min_ptr) = self.root {
+            unsafe {
+                while let Some(left_ptr) = min_ptr.as_ref().left {
+                    min_ptr = left_ptr;
+                }
+                return Some(min_ptr);
+            }
+        }
+        None
     }
 
     fn unlink_node(&mut self, node_ptr: NodePtr<K, V>) {
@@ -591,7 +599,7 @@ impl<K: Ord, V> Map<K, V> {
     }
 }
 
-impl<K: Ord, V> Drop for Map<K, V> {
+impl<K, V> Drop for Map<K, V> {
     fn drop(&mut self) {
         self.clear();
     }
@@ -603,7 +611,7 @@ impl<K: Ord, V> Default for Map<K, V> {
     }
 }
 
-impl<'a, K: Ord, V> IntoIterator for &'a Map<K, V> {
+impl<'a, K, V> IntoIterator for &'a Map<K, V> {
     type Item = (&'a K, &'a V);
     type IntoIter = Iter<'a, K, V>;
     fn into_iter(self) -> Self::IntoIter {
@@ -611,7 +619,7 @@ impl<'a, K: Ord, V> IntoIterator for &'a Map<K, V> {
     }
 }
 
-impl<'a, K: Ord, V> IntoIterator for &'a mut Map<K, V> {
+impl<'a, K, V> IntoIterator for &'a mut Map<K, V> {
     type Item = (&'a K, &'a mut V);
     type IntoIter = IterMut<'a, K, V>;
     fn into_iter(self) -> Self::IntoIter {
@@ -619,7 +627,7 @@ impl<'a, K: Ord, V> IntoIterator for &'a mut Map<K, V> {
     }
 }
 
-impl<K: Ord, V> IntoIterator for Map<K, V> {
+impl<K, V> IntoIterator for Map<K, V> {
     type Item = (K, V);
     type IntoIter = IntoIter<K, V>;
     fn into_iter(self) -> Self::IntoIter {
@@ -648,7 +656,7 @@ impl<K, V> Node<K, V> {
     }
 }
 
-impl<'a, K: Ord, V> Iterator for Iter<'a, K, V> {
+impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
     fn next(&mut self) -> Option<Self::Item> {
         match self.node_iter.next {
@@ -662,7 +670,7 @@ impl<'a, K: Ord, V> Iterator for Iter<'a, K, V> {
     }
 }
 
-impl<'a, K: Ord, V> Iterator for Keys<'a, K, V> {
+impl<'a, K, V> Iterator for Keys<'a, K, V> {
     type Item = &'a K;
     fn next(&mut self) -> Option<Self::Item> {
         match self.node_iter.next {
@@ -676,7 +684,7 @@ impl<'a, K: Ord, V> Iterator for Keys<'a, K, V> {
     }
 }
 
-impl<'a, K: Ord, V> Iterator for Values<'a, K, V> {
+impl<'a, K, V> Iterator for Values<'a, K, V> {
     type Item = &'a V;
     fn next(&mut self) -> Option<Self::Item> {
         match self.node_iter.next {
@@ -690,7 +698,7 @@ impl<'a, K: Ord, V> Iterator for Values<'a, K, V> {
     }
 }
 
-impl<'a, K: Ord, V> Iterator for IterMut<'a, K, V> {
+impl<'a, K, V> Iterator for IterMut<'a, K, V> {
     type Item = (&'a K, &'a mut V);
     fn next(&mut self) -> Option<Self::Item> {
         match self.node_iter.next {
@@ -707,7 +715,7 @@ impl<'a, K: Ord, V> Iterator for IterMut<'a, K, V> {
     }
 }
 
-impl<'a, K: Ord, V> Iterator for ValuesMut<'a, K, V> {
+impl<'a, K, V> Iterator for ValuesMut<'a, K, V> {
     type Item = &'a mut V;
     fn next(&mut self) -> Option<Self::Item> {
         match self.node_iter.next {
@@ -721,14 +729,14 @@ impl<'a, K: Ord, V> Iterator for ValuesMut<'a, K, V> {
     }
 }
 
-impl<K: Ord, V> Iterator for IntoIter<K, V> {
+impl<K, V> Iterator for IntoIter<K, V> {
     type Item = (K, V);
     fn next(&mut self) -> Option<Self::Item> {
         self.node_eater.munch()
     }
 }
 
-impl<'a, K: Ord, V> NodeIter<'a, K, V> {
+impl<'a, K, V> NodeIter<'a, K, V> {
     fn new(start: Link<K, V>, dir: Direction) -> Self {
         Self {
             next: start,
@@ -776,7 +784,7 @@ impl<'a, K: Ord, V> NodeIter<'a, K, V> {
     }
 }
 
-impl<K: Ord, V> NodeEater<K, V> {
+impl<K, V> NodeEater<K, V> {
     fn new(mut map: Map<K, V>) -> Self {
         let mut node_eater = Self {
             next: map.root,
@@ -828,7 +836,7 @@ impl<K: Ord, V> NodeEater<K, V> {
     }
 }
 
-impl<K: Ord, V> Drop for NodeEater<K, V> {
+impl<K, V> Drop for NodeEater<K, V> {
     /// Drops all nodes which have not been consumed.
     fn drop(&mut self) {
         self.postorder(|node_ptr| unsafe {
