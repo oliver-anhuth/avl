@@ -214,7 +214,7 @@ impl<K, V> Map<K, V> {
 }
 
 impl<K: Ord, V> Map<K, V> {
-    #[cfg(test)]
+    #[cfg(any(test, feature = "consistency_check"))]
     pub fn check_consistency(&self) {
         unsafe {
             // Check root link

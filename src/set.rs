@@ -46,7 +46,7 @@ impl<T: Ord> Set<T> {
         self.map.remove_entry(value).map(|(k, _)| k)
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "consistency_check"))]
     pub fn check_consistency(&self) {
         self.map.check_consistency()
     }
