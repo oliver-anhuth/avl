@@ -10,6 +10,7 @@ readme = "README.md"
 repository = "https://github.com/oliver-anhuth/avl"
 homepage = "https://github.com/oliver-anhuth/avl"
 documentation = "https://github.com/oliver-anhuth/avl"
+ignore = ["AFL Tree.pdf"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
