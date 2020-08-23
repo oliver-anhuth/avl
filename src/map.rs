@@ -672,11 +672,15 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.node_iter.next {
             None => None,
-            Some(node_ptr) => unsafe {
+            Some(node_ptr) => {
                 let current_ptr = node_ptr;
                 self.node_iter.next();
-                Some((&(*current_ptr.as_ptr()).key, &(*current_ptr.as_ptr()).value))
-            },
+                unsafe {
+                    let key = &(*current_ptr.as_ptr()).key;
+                    let value = &(*current_ptr.as_ptr()).value;
+                    Some((key, value))
+                }
+            }
         }
     }
 }
@@ -686,11 +690,14 @@ impl<'a, K, V> Iterator for Keys<'a, K, V> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.node_iter.next {
             None => None,
-            Some(node_ptr) => unsafe {
+            Some(node_ptr) => {
                 let current_ptr = node_ptr;
                 self.node_iter.next();
-                Some(&(*current_ptr.as_ptr()).key)
-            },
+                unsafe {
+                    let key = &(*current_ptr.as_ptr()).key;
+                    Some(key)
+                }
+            }
         }
     }
 }
@@ -700,11 +707,14 @@ impl<'a, K, V> Iterator for Values<'a, K, V> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.node_iter.next {
             None => None,
-            Some(node_ptr) => unsafe {
+            Some(node_ptr) => {
                 let current_ptr = node_ptr;
                 self.node_iter.next();
-                Some(&(*current_ptr.as_ptr()).value)
-            },
+                unsafe {
+                    let value = &(*current_ptr.as_ptr()).value;
+                    Some(value)
+                }
+            }
         }
     }
 }
@@ -714,14 +724,15 @@ impl<'a, K, V> Iterator for IterMut<'a, K, V> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.node_iter.next {
             None => None,
-            Some(node_ptr) => unsafe {
+            Some(node_ptr) => {
                 let current_ptr = node_ptr;
                 self.node_iter.next();
-                Some((
-                    &(*current_ptr.as_ptr()).key,
-                    &mut (*current_ptr.as_ptr()).value,
-                ))
-            },
+                unsafe {
+                    let key = &(*current_ptr.as_ptr()).key;
+                    let value = &mut (*current_ptr.as_ptr()).value;
+                    Some((key, value))
+                }
+            }
         }
     }
 }
@@ -731,11 +742,14 @@ impl<'a, K, V> Iterator for ValuesMut<'a, K, V> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.node_iter.next {
             None => None,
-            Some(node_ptr) => unsafe {
+            Some(node_ptr) => {
                 let current_ptr = node_ptr;
                 self.node_iter.next();
-                Some(&mut (*current_ptr.as_ptr()).value)
-            },
+                unsafe {
+                    let value = &mut (*current_ptr.as_ptr()).value;
+                    Some(value)
+                }
+            }
         }
     }
 }
