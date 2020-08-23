@@ -1,6 +1,6 @@
 # AVL Tree in Rust
 
-[![Build and test](https://github.com/oliver-anhuth/avl/workflows/Rust/badge.svg)]
+![Build and test](https://github.com/oliver-anhuth/avl/workflows/Rust/badge.svg)
 
 An AVL tree (nearly balanced binary search tree) implementation in Rust.
 
