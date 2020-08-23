@@ -79,6 +79,7 @@ impl<T> Set<T> {
 }
 
 impl<T: Ord> Default for Set<T> {
+    /// Creates an empty set.
     fn default() -> Self {
         Self::new()
     }

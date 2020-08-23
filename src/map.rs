@@ -607,6 +607,7 @@ impl<K, V> Drop for Map<K, V> {
 }
 
 impl<K: Ord, V> Default for Map<K, V> {
+    /// Creates an empty map.
     fn default() -> Self {
         Self::new()
     }
