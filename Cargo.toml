@@ -1,7 +1,7 @@
 [package]
 name = "avl"
-version = "0.1.0"
-authors = ["Oliver Anhuth <oliver.anhuth@web.de>"]
+version = "0.2.0"
+authors = ["Oliver Anhuth <oliver.anhuth@zoho.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
