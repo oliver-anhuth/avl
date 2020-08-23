@@ -29,6 +29,11 @@ impl<T: Ord> Set<T> {
         self.map.get_key_value(value).map(|kv| kv.0)
     }
 
+    /// Returns true if the set contains a value.
+    pub fn contains(&self, value: &T) -> bool {
+        self.map.get_key_value(value).is_some()
+    }
+
     /// Inserts a value into the set.
     pub fn insert(&mut self, value: T) -> bool {
         self.map.insert(value, ())
