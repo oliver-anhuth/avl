@@ -1,14 +1,14 @@
 [package]
 name = "avl"
-version = "0.2.0"
+description = "A map and a set implemented with an AVL tree."
 authors = ["Oliver Anhuth <oliver.anhuth@zoho.com>"]
 edition = "2018"
-description = "A map and a set implemented with an AVL tree."
-license = "MIT"
-readme = "README.md"
+version = "0.2.0"
+documentation = "https://docs.rs/avl/0.2.0/avl/"
 repository = "https://github.com/oliver-anhuth/avl"
 homepage = "https://github.com/oliver-anhuth/avl"
-documentation = "https://github.com/oliver-anhuth/avl"
+license = "MIT"
+readme = "README.md"
 exclude = ["AVL Trees.pdf"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
