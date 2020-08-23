@@ -5,6 +5,14 @@ const LARGE_N: i32 = 10_000_000;
 
 #[test]
 fn test_new() {
+    let mut map = AvlTreeMap::new();
+    map.insert(0, "zero");
+    map.insert(1, "one");
+    map.insert(2, "two");
+    assert_eq!(map.get(&1), Some(&"one"));
+    map.remove(&1);
+    assert!(map.get(&1).is_none());
+
     let map_i32: AvlTreeMap<i32, ()> = AvlTreeMap::new();
     assert!(map_i32.is_empty());
     map_i32.check_consistency();

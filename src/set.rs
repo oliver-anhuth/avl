@@ -2,7 +2,7 @@ use std::fmt;
 
 use super::map::{IntoIter as MapIntoIter, Iter as MapIter, Map};
 
-/// A sorted set implemented with a nearly balanced binary search tree.
+/// An ordered set implemented with a nearly balanced binary search tree.
 pub struct Set<T> {
     map: Map<T, ()>,
 }
