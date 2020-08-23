@@ -23,9 +23,7 @@ impl<T: Ord> Set<T> {
     pub fn new() -> Self {
         Self { map: Map::new() }
     }
-}
 
-impl<T: Ord> Set<T> {
     /// Returns a reference to the value in the set that is equal to the given value.
     pub fn get(&self, value: &T) -> Option<&T> {
         self.map.get_key_value(value).map(|kv| kv.0)
@@ -48,6 +46,7 @@ impl<T: Ord> Set<T> {
         self.map.remove_entry(value).map(|(k, _)| k)
     }
 
+    /// Asserts that the internal tree structure is consistent.
     #[cfg(any(test, feature = "consistency_check"))]
     pub fn check_consistency(&self) {
         self.map.check_consistency()
