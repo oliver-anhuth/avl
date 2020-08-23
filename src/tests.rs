@@ -5,6 +5,7 @@ const LARGE_N: i32 = 10_000_000;
 
 #[test]
 fn test_new() {
+    assert!(false);
     let map_i32: AvlTreeMap<i32, ()> = AvlTreeMap::new();
     assert!(map_i32.is_empty());
     map_i32.check_consistency();
