@@ -9,6 +9,7 @@ repository = "https://github.com/oliver-anhuth/avl"
 homepage = "https://github.com/oliver-anhuth/avl"
 license = "MIT"
 readme = "README.md"
+categories = ["algorithms", "data-structures"]
 exclude = ["AVL Trees.pdf"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
