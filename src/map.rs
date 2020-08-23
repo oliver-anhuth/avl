@@ -146,75 +146,8 @@ impl<K: Ord, V> Map<K, V> {
         }
         None
     }
-}
 
-impl<K, V> Map<K, V> {
-    /// Returns true if the map contains no elements.
-    pub fn is_empty(&self) -> bool {
-        self.root.is_none()
-    }
-
-    /// Returns the number of elements in the map.
-    pub fn len(&self) -> usize {
-        self.num_nodes
-    }
-
-    #[cfg(test)]
-    pub fn height(&self) -> usize {
-        match self.root {
-            None => 0,
-            Some(root_ptr) => unsafe { root_ptr.as_ref().height },
-        }
-    }
-
-    /// Clears the map, deallocating all memory.
-    pub fn clear(&mut self) {
-        self.postorder(|node_ptr| unsafe {
-            Node::destroy(node_ptr);
-        });
-        self.root = None;
-        self.num_nodes = 0;
-    }
-}
-
-impl<K, V> Map<K, V> {
-    /// Gets an iterator over the entries of the map, sorted by key.
-    pub fn iter<'a>(&'a self) -> Iter<'a, K, V> {
-        Iter {
-            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
-        }
-    }
-
-    /// Gets an iterator over the keys of the map, in sorted order.
-    pub fn keys<'a>(&'a self) -> Keys<'a, K, V> {
-        Keys {
-            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
-        }
-    }
-
-    /// Gets an iterator over the values of the map, in order by key.
-    pub fn values<'a>(&'a self) -> Values<'a, K, V> {
-        Values {
-            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
-        }
-    }
-
-    /// Gets a mutable iterator over the values of the map, in order by key.
-    pub fn values_mut<'a>(&'a self) -> ValuesMut<'a, K, V> {
-        ValuesMut {
-            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
-        }
-    }
-
-    /// Gets a mutable iterator over the entries of the map, sorted by key.
-    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, K, V> {
-        IterMut {
-            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
-        }
-    }
-}
-
-impl<K: Ord, V> Map<K, V> {
+    /// Asserts that the internal tree structure is consistent.
     #[cfg(any(test, feature = "consistency_check"))]
     pub fn check_consistency(&self) {
         unsafe {
@@ -260,7 +193,73 @@ impl<K: Ord, V> Map<K, V> {
             assert_eq!(num_nodes, self.num_nodes);
         }
     }
+}
 
+impl<K, V> Map<K, V> {
+    /// Returns true if the map contains no elements.
+    pub fn is_empty(&self) -> bool {
+        self.root.is_none()
+    }
+
+    /// Returns the number of elements in the map.
+    pub fn len(&self) -> usize {
+        self.num_nodes
+    }
+
+    #[cfg(test)]
+    pub fn height(&self) -> usize {
+        match self.root {
+            None => 0,
+            Some(root_ptr) => unsafe { root_ptr.as_ref().height },
+        }
+    }
+
+    /// Clears the map, deallocating all memory.
+    pub fn clear(&mut self) {
+        self.postorder(|node_ptr| unsafe {
+            Node::destroy(node_ptr);
+        });
+        self.root = None;
+        self.num_nodes = 0;
+    }
+
+    /// Gets an iterator over the entries of the map, sorted by key.
+    pub fn iter<'a>(&'a self) -> Iter<'a, K, V> {
+        Iter {
+            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+        }
+    }
+
+    /// Gets an iterator over the keys of the map, in sorted order.
+    pub fn keys<'a>(&'a self) -> Keys<'a, K, V> {
+        Keys {
+            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+        }
+    }
+
+    /// Gets an iterator over the values of the map, in order by key.
+    pub fn values<'a>(&'a self) -> Values<'a, K, V> {
+        Values {
+            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+        }
+    }
+
+    /// Gets a mutable iterator over the values of the map, in order by key.
+    pub fn values_mut<'a>(&'a self) -> ValuesMut<'a, K, V> {
+        ValuesMut {
+            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+        }
+    }
+
+    /// Gets a mutable iterator over the entries of the map, sorted by key.
+    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, K, V> {
+        IterMut {
+            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+        }
+    }
+}
+
+impl<K: Ord, V> Map<K, V> {
     fn find(&self, key: &K) -> Link<K, V> {
         let mut current = self.root;
         while let Some(node_ptr) = current {
