@@ -3,6 +3,13 @@ name = "avl"
 version = "0.2.0"
 authors = ["Oliver Anhuth <oliver.anhuth@zoho.com>"]
 edition = "2018"
+description = "A map and a set implemented with an AVL tree."
+license = "MIT"
+license-file = "LICENSE"
+readme = "README.md"
+repository = "https://github.com/oliver-anhuth/avl"
+homepage = "https://github.com/oliver-anhuth/avl"
+documentation = "https://github.com/oliver-anhuth/avl"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
