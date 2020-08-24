@@ -417,6 +417,16 @@ fn test_map_iter() {
         assert_eq!(mapped, *value);
     }
     assert!(value_iter.next().is_none());
+
+    let mut map = AvlTreeMap::new();
+    for value in &values {
+        map.insert(*value, value.wrapping_add(42));
+    }
+
+    let mut into_iter = map.into_iter();
+    for _ in 0..N / 10 {
+        into_iter.next();
+    }
 }
 
 #[test]
