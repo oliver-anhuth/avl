@@ -1,6 +1,6 @@
 # AVL Tree Map / Set in Rust
 
-[![Build and test](https://github.com/oliver-anhuth/avl/workflows/Rust/badge.svg)](https://github.com/oliver-anhuth/avl/actions)
+[![Build and test](https://github.com/oliver-anhuth/avl/workflows/BuildAndTest/badge.svg)](https://github.com/oliver-anhuth/avl/actions)
 
 An ordered map / set implemented with an AVL tree (nearly balanced binary search tree) in Rust.
 
