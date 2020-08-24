@@ -28,27 +28,27 @@ type LinkPtr<K, V> = NonNull<Link<K, V>>;
 
 /// An iterator over the entries of a map.
 pub struct Iter<'a, K, V> {
-    node_range: NodeRange<'a, K, V>,
+    node_iter: NodeIter<'a, K, V>,
 }
 
 /// An iterator over the keys of a map.
 pub struct Keys<'a, K, V> {
-    node_range: NodeRange<'a, K, V>,
+    node_iter: NodeIter<'a, K, V>,
 }
 
 /// An iterator over the values of a map.
 pub struct Values<'a, K, V> {
-    node_range: NodeRange<'a, K, V>,
+    node_iter: NodeIter<'a, K, V>,
 }
 
 /// A mutable iterator over the entries of a map.
 pub struct IterMut<'a, K, V> {
-    node_range: NodeRange<'a, K, V>,
+    node_iter: NodeIter<'a, K, V>,
 }
 
 /// An iterator over the values of a map.
 pub struct ValuesMut<'a, K, V> {
-    node_range: NodeRange<'a, K, V>,
+    node_iter: NodeIter<'a, K, V>,
 }
 
 /// An owning iterator over the entries of a map.
@@ -58,7 +58,7 @@ pub struct IntoIter<K, V> {
 
 /// Specifies a range [first, last] of tree nodes.
 /// Allows iteration by successively narrowing the range from either end.
-struct NodeRange<'a, K, V> {
+struct NodeIter<'a, K, V> {
     first: Link<K, V>,
     last: Link<K, V>,
     marker: PhantomData<&'a Node<K, V>>,
@@ -66,7 +66,6 @@ struct NodeRange<'a, K, V> {
 
 struct NodeEater<K, V> {
     next: Link<K, V>,
-    root: Link<K, V>,
 }
 
 impl<K: Ord, V> Map<K, V> {
@@ -222,35 +221,35 @@ impl<K, V> Map<K, V> {
     /// Gets an iterator over the entries of the map, sorted by key.
     pub fn iter(&self) -> Iter<'_, K, V> {
         Iter {
-            node_range: NodeRange::new(self.find_min(), self.find_max()),
+            node_iter: NodeIter::new(self.find_min(), self.find_max()),
         }
     }
 
     /// Gets an iterator over the keys of the map, in sorted order.
     pub fn keys(&self) -> Keys<'_, K, V> {
         Keys {
-            node_range: NodeRange::new(self.find_min(), self.find_max()),
+            node_iter: NodeIter::new(self.find_min(), self.find_max()),
         }
     }
 
     /// Gets an iterator over the values of the map, in order by key.
     pub fn values(&self) -> Values<'_, K, V> {
         Values {
-            node_range: NodeRange::new(self.find_min(), self.find_max()),
+            node_iter: NodeIter::new(self.find_min(), self.find_max()),
         }
     }
 
     /// Gets a mutable iterator over the values of the map, in order by key.
     pub fn values_mut(&self) -> ValuesMut<'_, K, V> {
         ValuesMut {
-            node_range: NodeRange::new(self.find_min(), self.find_max()),
+            node_iter: NodeIter::new(self.find_min(), self.find_max()),
         }
     }
 
     /// Gets a mutable iterator over the entries of the map, sorted by key.
     pub fn iter_mut(&mut self) -> IterMut<K, V> {
         IterMut {
-            node_range: NodeRange::new(self.find_min(), self.find_max()),
+            node_iter: NodeIter::new(self.find_min(), self.find_max()),
         }
     }
 }
@@ -554,7 +553,7 @@ impl<K, V> Map<K, V> {
     }
 
     fn traverse<Pre, In, Post>(
-        root: Link<K, V>,
+        start: Link<K, V>,
         mut preorder: Pre,
         mut inorder: In,
         mut postorder: Post,
@@ -563,9 +562,7 @@ impl<K, V> Map<K, V> {
         In: FnMut(NodePtr<K, V>),
         Post: FnMut(NodePtr<K, V>),
     {
-        if let Some(mut node_ptr) = root {
-            debug_assert!(unsafe { node_ptr.as_ref().parent }.is_none());
-
+        if let Some(mut node_ptr) = start {
             #[allow(clippy::enum_variant_names)]
             enum Direction {
                 FromParent,
@@ -686,7 +683,7 @@ impl<K, V> Node<K, V> {
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_range.pop_first() {
+        match self.node_iter.pop_first() {
             None => None,
             Some(node_ptr) => unsafe {
                 let key: &'a K = &(*node_ptr.as_ptr()).key;
@@ -700,7 +697,7 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
 impl<'a, K, V> Iterator for Keys<'a, K, V> {
     type Item = &'a K;
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_range.pop_first() {
+        match self.node_iter.pop_first() {
             None => None,
             Some(node_ptr) => unsafe {
                 let key: &'a K = &(*node_ptr.as_ptr()).key;
@@ -713,7 +710,7 @@ impl<'a, K, V> Iterator for Keys<'a, K, V> {
 impl<'a, K, V> Iterator for Values<'a, K, V> {
     type Item = &'a V;
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_range.pop_first() {
+        match self.node_iter.pop_first() {
             None => None,
             Some(node_ptr) => unsafe {
                 let value: &'a V = &(*node_ptr.as_ptr()).value;
@@ -726,7 +723,7 @@ impl<'a, K, V> Iterator for Values<'a, K, V> {
 impl<'a, K, V> Iterator for IterMut<'a, K, V> {
     type Item = (&'a K, &'a mut V);
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_range.pop_first() {
+        match self.node_iter.pop_first() {
             None => None,
             Some(node_ptr) => unsafe {
                 let key: &'a K = &(*node_ptr.as_ptr()).key;
@@ -740,7 +737,7 @@ impl<'a, K, V> Iterator for IterMut<'a, K, V> {
 impl<'a, K, V> Iterator for ValuesMut<'a, K, V> {
     type Item = &'a mut V;
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_range.pop_first() {
+        match self.node_iter.pop_first() {
             None => None,
             Some(node_ptr) => unsafe {
                 let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
@@ -750,9 +747,9 @@ impl<'a, K, V> Iterator for ValuesMut<'a, K, V> {
     }
 }
 
-impl<'a, K, V> NodeRange<'a, K, V> {
+impl<'a, K, V> NodeIter<'a, K, V> {
     fn new(first: Link<K, V>, last: Link<K, V>) -> Self {
-        Self {
+        NodeIter {
             first,
             last,
             marker: PhantomData,
@@ -794,21 +791,20 @@ impl<'a, K, V> NodeRange<'a, K, V> {
 impl<K, V> Iterator for IntoIter<K, V> {
     type Item = (K, V);
     fn next(&mut self) -> Option<Self::Item> {
-        self.node_eater.munch()
+        self.node_eater.pop()
     }
 }
 
 impl<K, V> NodeEater<K, V> {
     fn new(mut map: Map<K, V>) -> Self {
         let mut node_eater = Self {
-            next: map.root,
-            root: map.root.take(),
+            next: map.root.take(),
         };
-        node_eater.find_next();
+        node_eater.find_min();
         node_eater
     }
 
-    fn find_next(&mut self) {
+    fn find_min(&mut self) {
         if let Some(mut next_ptr) = self.next {
             while let Some(left_ptr) = unsafe { next_ptr.as_ref().left } {
                 next_ptr = left_ptr;
@@ -817,16 +813,15 @@ impl<K, V> NodeEater<K, V> {
         }
     }
 
-    fn munch(&mut self) -> Option<(K, V)> {
+    fn pop(&mut self) -> Option<(K, V)> {
         if let Some(node_ptr) = self.next {
             unsafe {
                 match node_ptr.as_ref().parent {
                     None => {
-                        self.root = node_ptr.as_ref().right;
-                        if let Some(mut root_ptr) = self.root {
+                        self.next = node_ptr.as_ref().right;
+                        if let Some(mut root_ptr) = self.next {
                             root_ptr.as_mut().parent = None;
                         }
-                        self.next = self.root;
                     }
                     Some(mut parent_ptr) => {
                         parent_ptr.as_mut().left = node_ptr.as_ref().right;
@@ -838,7 +833,7 @@ impl<K, V> NodeEater<K, V> {
                         }
                     }
                 }
-                self.find_next();
+                self.find_min();
                 return Some(Node::destroy(node_ptr));
             }
         }
@@ -846,7 +841,7 @@ impl<K, V> NodeEater<K, V> {
     }
 
     fn postorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
-        Map::traverse(self.root, |_| {}, |_| {}, f);
+        Map::traverse(self.next, |_| {}, |_| {}, f);
     }
 }
 
