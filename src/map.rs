@@ -26,13 +26,6 @@ type NodePtr<K, V> = NonNull<Node<K, V>>;
 type Link<K, V> = Option<NodePtr<K, V>>;
 type LinkPtr<K, V> = NonNull<Link<K, V>>;
 
-#[allow(clippy::enum_variant_names)]
-enum Direction {
-    FromParent,
-    FromLeft,
-    FromRight,
-}
-
 /// An iterator over the entries of a map.
 pub struct Iter<'a, K, V> {
     node_range: NodeRange<'a, K, V>,
@@ -572,6 +565,14 @@ impl<K, V> Map<K, V> {
     {
         if let Some(mut node_ptr) = root {
             debug_assert!(unsafe { node_ptr.as_ref().parent }.is_none());
+
+            #[allow(clippy::enum_variant_names)]
+            enum Direction {
+                FromParent,
+                FromLeft,
+                FromRight,
+            }
+
             let mut dir = Direction::FromParent;
             loop {
                 match dir {
