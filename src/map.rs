@@ -680,6 +680,14 @@ impl<K, V> Node<K, V> {
     }
 }
 
+impl<K, V> Clone for Iter<'_, K, V> {
+    fn clone(&self) -> Self {
+        Self {
+            node_iter: NodeIter::new(self.node_iter.first, self.node_iter.last),
+        }
+    }
+}
+
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
     fn next(&mut self) -> Option<Self::Item> {
@@ -694,6 +702,14 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
     }
 }
 
+impl<K, V> Clone for Keys<'_, K, V> {
+    fn clone(&self) -> Self {
+        Self {
+            node_iter: NodeIter::new(self.node_iter.first, self.node_iter.last),
+        }
+    }
+}
+
 impl<'a, K, V> Iterator for Keys<'a, K, V> {
     type Item = &'a K;
     fn next(&mut self) -> Option<Self::Item> {
@@ -703,6 +719,14 @@ impl<'a, K, V> Iterator for Keys<'a, K, V> {
                 let key: &'a K = &(*node_ptr.as_ptr()).key;
                 Some(key)
             },
+        }
+    }
+}
+
+impl<K, V> Clone for Values<'_, K, V> {
+    fn clone(&self) -> Self {
+        Self {
+            node_iter: NodeIter::new(self.node_iter.first, self.node_iter.last),
         }
     }
 }

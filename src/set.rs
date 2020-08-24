@@ -113,6 +113,14 @@ impl<T> IntoIterator for Set<T> {
     }
 }
 
+impl<T> Clone for Iter<'_, T> {
+    fn clone(&self) -> Self {
+        Self {
+            map_iter: self.map_iter.clone(),
+        }
+    }
+}
+
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
     fn next(&mut self) -> Option<Self::Item> {
