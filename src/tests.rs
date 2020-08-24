@@ -427,6 +427,15 @@ fn test_map_iter() {
     for _ in 0..N / 10 {
         into_iter.next();
     }
+
+    let mut map = std::collections::BTreeMap::new();
+    map.insert(1, "one");
+    map.insert(2, "two");
+    map.insert(3, "three");
+    assert_eq!(
+        format!("{:?}", map.iter()),
+        r#"[(1, "one"), (2, "two"), (3, "three")]"#
+    );
 }
 
 #[test]
