@@ -200,8 +200,6 @@ fn test_insert_sorted_range() {
         map.check_consistency();
     }
     assert!(map.len() == N as usize);
-    assert!(map.height() > 0);
-    assert!(map.height() < N as usize / 2);
     assert!(map.get(&-42).is_none());
 }
 

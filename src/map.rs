@@ -14,12 +14,12 @@ pub struct Map<K, V> {
 /// A node in the binary search tree, containing a key, a value, links to its left child,
 /// right child and parent node, and its height (== maximum number of links to a leaf node).
 struct Node<K, V> {
-    key: K,
-    value: V,
+    parent: Link<K, V>,
     left: Link<K, V>,
     right: Link<K, V>,
-    parent: Link<K, V>,
-    height: usize,
+    height: u16,
+    key: K,
+    value: V,
 }
 
 type NodePtr<K, V> = NonNull<Node<K, V>>;
@@ -181,6 +181,7 @@ impl<K: Ord, V> Map<K, V> {
 
                 // Check height
                 assert_eq!(node_ptr.as_ref().height, height);
+                assert!(height <= 128, "Should hold for all 64 bit address spaces");
 
                 // Check AVL condition (nearly balance)
                 assert!(left_height <= right_height + 1);
@@ -207,7 +208,7 @@ impl<K, V> Map<K, V> {
     }
 
     #[cfg(test)]
-    pub fn height(&self) -> usize {
+    pub fn height(&self) -> u16 {
         match self.root {
             None => 0,
             Some(root_ptr) => unsafe { root_ptr.as_ref().height },
@@ -382,7 +383,7 @@ impl<K, V> Map<K, V> {
         }
     }
 
-    fn left_height(node_ptr: NodePtr<K, V>) -> usize {
+    fn left_height(node_ptr: NodePtr<K, V>) -> u16 {
         unsafe {
             match node_ptr.as_ref().left {
                 None => 0,
@@ -391,7 +392,7 @@ impl<K, V> Map<K, V> {
         }
     }
 
-    fn right_height(node_ptr: NodePtr<K, V>) -> usize {
+    fn right_height(node_ptr: NodePtr<K, V>) -> u16 {
         unsafe {
             match node_ptr.as_ref().right {
                 None => 0,
@@ -651,12 +652,12 @@ impl<K, V> IntoIterator for Map<K, V> {
 impl<K, V> Node<K, V> {
     unsafe fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
         let boxed = Box::new(Node {
-            key,
-            value,
             parent,
             left: None,
             right: None,
             height: 0,
+            key,
+            value,
         });
         NodePtr::new_unchecked(Box::into_raw(boxed))
     }
