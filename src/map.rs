@@ -11,8 +11,8 @@ pub struct Map<K, V> {
     num_nodes: usize,
 }
 
-/// A node in the binary search tree, containing a key, a value, links to its left child,
-/// right child and parent node, and its height (== maximum number of links to a leaf node).
+/// A node in the binary search tree, containing links to its parent node, left child, right child,
+/// its height (== maximum number of links to a leaf node) and a key, a value.
 struct Node<K, V> {
     parent: Link<K, V>,
     left: Link<K, V>,
@@ -35,27 +35,27 @@ enum Direction {
 
 /// An iterator over the entries of a map.
 pub struct Iter<'a, K, V> {
-    node_iter: NodeIter<'a, K, V>,
+    node_range: NodeRange<'a, K, V>,
 }
 
 /// An iterator over the keys of a map.
 pub struct Keys<'a, K, V> {
-    node_iter: NodeIter<'a, K, V>,
+    node_range: NodeRange<'a, K, V>,
 }
 
 /// An iterator over the values of a map.
 pub struct Values<'a, K, V> {
-    node_iter: NodeIter<'a, K, V>,
+    node_range: NodeRange<'a, K, V>,
 }
 
 /// A mutable iterator over the entries of a map.
 pub struct IterMut<'a, K, V> {
-    node_iter: NodeIter<'a, K, V>,
+    node_range: NodeRange<'a, K, V>,
 }
 
 /// An iterator over the values of a map.
 pub struct ValuesMut<'a, K, V> {
-    node_iter: NodeIter<'a, K, V>,
+    node_range: NodeRange<'a, K, V>,
 }
 
 /// An owning iterator over the entries of a map.
@@ -63,10 +63,12 @@ pub struct IntoIter<K, V> {
     node_eater: NodeEater<K, V>,
 }
 
-struct NodeIter<'a, K, V> {
-    next: Link<K, V>,
-    dir: Direction,
-    marker: std::marker::PhantomData<&'a Node<K, V>>,
+/// Specifies a range [first, last] of tree nodes.
+/// Allows iteration by successively narrowing the range from either end.
+struct NodeRange<'a, K, V> {
+    first: Link<K, V>,
+    last: Link<K, V>,
+    marker: PhantomData<&'a Node<K, V>>,
 }
 
 struct NodeEater<K, V> {
@@ -148,7 +150,7 @@ impl<K: Ord, V> Map<K, V> {
     }
 
     /// Asserts that the internal tree structure is consistent.
-    #[cfg(any(test, feature = "consistency_check"))]
+    #[cfg(any(test, feature = "consist^ency_check"))]
     pub fn check_consistency(&self) {
         unsafe {
             // Check root link
@@ -225,37 +227,37 @@ impl<K, V> Map<K, V> {
     }
 
     /// Gets an iterator over the entries of the map, sorted by key.
-    pub fn iter<'a>(&'a self) -> Iter<'a, K, V> {
+    pub fn iter(&self) -> Iter<'_, K, V> {
         Iter {
-            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+            node_range: NodeRange::new(self.find_min(), self.find_max()),
         }
     }
 
     /// Gets an iterator over the keys of the map, in sorted order.
-    pub fn keys<'a>(&'a self) -> Keys<'a, K, V> {
+    pub fn keys(&self) -> Keys<'_, K, V> {
         Keys {
-            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+            node_range: NodeRange::new(self.find_min(), self.find_max()),
         }
     }
 
     /// Gets an iterator over the values of the map, in order by key.
-    pub fn values<'a>(&'a self) -> Values<'a, K, V> {
+    pub fn values(&self) -> Values<'_, K, V> {
         Values {
-            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+            node_range: NodeRange::new(self.find_min(), self.find_max()),
         }
     }
 
     /// Gets a mutable iterator over the values of the map, in order by key.
-    pub fn values_mut<'a>(&'a self) -> ValuesMut<'a, K, V> {
+    pub fn values_mut(&self) -> ValuesMut<'_, K, V> {
         ValuesMut {
-            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+            node_range: NodeRange::new(self.find_min(), self.find_max()),
         }
     }
 
     /// Gets a mutable iterator over the entries of the map, sorted by key.
-    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, K, V> {
+    pub fn iter_mut(&mut self) -> IterMut<K, V> {
         IterMut {
-            node_iter: NodeIter::new(self.find_min(), Direction::FromLeft),
+            node_range: NodeRange::new(self.find_min(), self.find_max()),
         }
     }
 }
@@ -298,15 +300,27 @@ impl<K: Ord, V> Map<K, V> {
 
 impl<K, V> Map<K, V> {
     fn find_min(&self) -> Link<K, V> {
-        if let Some(mut min_ptr) = self.root {
-            unsafe {
-                while let Some(left_ptr) = min_ptr.as_ref().left {
+        match self.root {
+            None => None,
+            Some(mut min_ptr) => {
+                while let Some(left_ptr) = unsafe { min_ptr.as_ref().left } {
                     min_ptr = left_ptr;
                 }
-                return Some(min_ptr);
+                Some(min_ptr)
             }
         }
-        None
+    }
+
+    fn find_max(&self) -> Link<K, V> {
+        match self.root {
+            None => None,
+            Some(mut max_ptr) => {
+                while let Some(right_ptr) = unsafe { max_ptr.as_ref().right } {
+                    max_ptr = right_ptr;
+                }
+                Some(max_ptr)
+            }
+        }
     }
 
     fn unlink_node(&mut self, node_ptr: NodePtr<K, V>) {
@@ -671,17 +685,13 @@ impl<K, V> Node<K, V> {
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_iter.next {
+        match self.node_range.pop_first() {
             None => None,
-            Some(node_ptr) => {
-                let current_ptr = node_ptr;
-                self.node_iter.next();
-                unsafe {
-                    let key = &(*current_ptr.as_ptr()).key;
-                    let value = &(*current_ptr.as_ptr()).value;
-                    Some((key, value))
-                }
-            }
+            Some(node_ptr) => unsafe {
+                let key: &'a K = &(*node_ptr.as_ptr()).key;
+                let value: &'a V = &(*node_ptr.as_ptr()).value;
+                Some((key, value))
+            },
         }
     }
 }
@@ -689,16 +699,12 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
 impl<'a, K, V> Iterator for Keys<'a, K, V> {
     type Item = &'a K;
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_iter.next {
+        match self.node_range.pop_first() {
             None => None,
-            Some(node_ptr) => {
-                let current_ptr = node_ptr;
-                self.node_iter.next();
-                unsafe {
-                    let key = &(*current_ptr.as_ptr()).key;
-                    Some(key)
-                }
-            }
+            Some(node_ptr) => unsafe {
+                let key: &'a K = &(*node_ptr.as_ptr()).key;
+                Some(key)
+            },
         }
     }
 }
@@ -706,16 +712,12 @@ impl<'a, K, V> Iterator for Keys<'a, K, V> {
 impl<'a, K, V> Iterator for Values<'a, K, V> {
     type Item = &'a V;
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_iter.next {
+        match self.node_range.pop_first() {
             None => None,
-            Some(node_ptr) => {
-                let current_ptr = node_ptr;
-                self.node_iter.next();
-                unsafe {
-                    let value = &(*current_ptr.as_ptr()).value;
-                    Some(value)
-                }
-            }
+            Some(node_ptr) => unsafe {
+                let value: &'a V = &(*node_ptr.as_ptr()).value;
+                Some(value)
+            },
         }
     }
 }
@@ -723,17 +725,13 @@ impl<'a, K, V> Iterator for Values<'a, K, V> {
 impl<'a, K, V> Iterator for IterMut<'a, K, V> {
     type Item = (&'a K, &'a mut V);
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_iter.next {
+        match self.node_range.pop_first() {
             None => None,
-            Some(node_ptr) => {
-                let current_ptr = node_ptr;
-                self.node_iter.next();
-                unsafe {
-                    let key = &(*current_ptr.as_ptr()).key;
-                    let value = &mut (*current_ptr.as_ptr()).value;
-                    Some((key, value))
-                }
-            }
+            Some(node_ptr) => unsafe {
+                let key: &'a K = &(*node_ptr.as_ptr()).key;
+                let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
+                Some((key, value))
+            },
         }
     }
 }
@@ -741,17 +739,54 @@ impl<'a, K, V> Iterator for IterMut<'a, K, V> {
 impl<'a, K, V> Iterator for ValuesMut<'a, K, V> {
     type Item = &'a mut V;
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_iter.next {
+        match self.node_range.pop_first() {
             None => None,
-            Some(node_ptr) => {
-                let current_ptr = node_ptr;
-                self.node_iter.next();
-                unsafe {
-                    let value = &mut (*current_ptr.as_ptr()).value;
-                    Some(value)
+            Some(node_ptr) => unsafe {
+                let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
+                Some(value)
+            },
+        }
+    }
+}
+
+impl<'a, K, V> NodeRange<'a, K, V> {
+    fn new(first: Link<K, V>, last: Link<K, V>) -> Self {
+        Self {
+            first,
+            last,
+            marker: PhantomData,
+        }
+    }
+
+    fn pop_first(&mut self) -> Link<K, V> {
+        let first = self.first;
+        if let Some(node_ptr) = self.first {
+            if self.first == self.last {
+                self.first = None;
+                self.last = None;
+            } else if let Some(mut next_ptr) = unsafe { node_ptr.as_ref().right } {
+                while let Some(left_ptr) = unsafe { next_ptr.as_ref().left } {
+                    next_ptr = left_ptr;
+                }
+                self.first = Some(next_ptr);
+            } else {
+                let mut next_ptr = node_ptr;
+                loop {
+                    let from = Some(next_ptr);
+                    match unsafe { next_ptr.as_ref().parent } {
+                        None => panic!("Invalid node range"),
+                        Some(parent_ptr) => {
+                            next_ptr = parent_ptr;
+                            if unsafe { next_ptr.as_ref().left } == from {
+                                self.first = Some(next_ptr);
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         }
+        first
     }
 }
 
@@ -759,54 +794,6 @@ impl<K, V> Iterator for IntoIter<K, V> {
     type Item = (K, V);
     fn next(&mut self) -> Option<Self::Item> {
         self.node_eater.munch()
-    }
-}
-
-impl<'a, K, V> NodeIter<'a, K, V> {
-    fn new(start: Link<K, V>, dir: Direction) -> Self {
-        Self {
-            next: start,
-            dir,
-            marker: PhantomData,
-        }
-    }
-
-    fn next(&mut self) {
-        while let Some(node_ptr) = self.next {
-            match self.dir {
-                Direction::FromParent => {
-                    let left = unsafe { node_ptr.as_ref().left };
-                    if left.is_some() {
-                        self.next = left;
-                    } else {
-                        self.dir = Direction::FromLeft;
-                        break;
-                    }
-                }
-                Direction::FromLeft => {
-                    let right = unsafe { node_ptr.as_ref().right };
-                    if right.is_some() {
-                        self.next = right;
-                        self.dir = Direction::FromParent;
-                    } else {
-                        self.dir = Direction::FromRight;
-                    }
-                }
-                Direction::FromRight => {
-                    let from = self.next;
-                    let parent = unsafe { node_ptr.as_ref().parent };
-                    self.next = parent;
-                    if let Some(parent_ptr) = parent {
-                        if from == unsafe { parent_ptr.as_ref().left } {
-                            self.dir = Direction::FromLeft;
-                            break;
-                        } else {
-                            self.dir = Direction::FromRight;
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 
