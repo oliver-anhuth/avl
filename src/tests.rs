@@ -348,6 +348,7 @@ fn test_map_iter() {
     values.sort();
     values.dedup();
 
+    // Test non mutable iterators
     let mut map_iter = map.iter();
     for value in &values {
         let kv = map_iter.next();
@@ -386,6 +387,7 @@ fn test_map_iter() {
     }
     assert!(map_iter.next().is_none());
 
+    // Test mutable iterators
     let mut map_iter_mut = map.iter_mut();
     for value in &values {
         let kv = map_iter_mut.next();
@@ -408,6 +410,7 @@ fn test_map_iter() {
     }
     assert!(value_iter.next().is_none());
 
+    // Test consuming iterator
     let mut value_iter = values.iter();
     for (key, mapped) in map {
         let value = value_iter.next();
@@ -426,6 +429,26 @@ fn test_map_iter() {
     let mut into_iter = map.into_iter();
     for _ in 0..N / 10 {
         into_iter.next();
+    }
+
+    // Test reverse iterator
+    let mut map = AvlTreeMap::new();
+    for value in &values {
+        map.insert(*value, *value);
+    }
+
+    let mut values_iter = values.iter();
+    let mut map_iter = map.iter();
+    while let Some(value) = values_iter.next_back() {
+        let kv = map_iter.next_back();
+        assert_eq!(kv, Some((value, value)));
+    }
+
+    let mut rev_values_iter = values.iter().rev();
+    let mut rev_map_iter = map.iter().rev();
+    while let Some(value) = rev_values_iter.next() {
+        let kv = rev_map_iter.next();
+        assert_eq!(kv, Some((value, value)));
     }
 
     // Test debug formatting
