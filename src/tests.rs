@@ -428,6 +428,7 @@ fn test_map_iter() {
         into_iter.next();
     }
 
+    // Test debug formatting
     let mut map = AvlTreeMap::new();
     map.insert(1, "one");
     map.insert(2, "two");
@@ -489,6 +490,13 @@ fn test_set_iter() {
         assert_eq!(key, *value);
     }
     assert!(value_iter.next().is_none());
+
+    // Test debug formatting
+    let mut set = AvlTreeSet::new();
+    set.insert(1);
+    set.insert(2);
+    set.insert(3);
+    assert_eq!(format!("{:?}", set.iter()), "[1, 2, 3]");
 }
 
 #[test]

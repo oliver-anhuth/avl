@@ -1,6 +1,6 @@
 use std::fmt;
 
-use super::map::{IntoIter as MapIntoIter, Iter as MapIter, Map};
+use super::map::{IntoIter as MapIntoIter, Keys as MapIter, Map};
 
 /// An ordered set implemented with a nearly balanced binary search tree.
 pub struct Set<T> {
@@ -8,6 +8,7 @@ pub struct Set<T> {
 }
 
 /// An iterator over the values of a set.
+#[derive(Clone)]
 pub struct Iter<'a, T> {
     map_iter: MapIter<'a, T, ()>,
 }
@@ -77,7 +78,7 @@ impl<T> Set<T> {
     /// Gets an iterator over the values of the map in sorted order.
     pub fn iter(&self) -> Iter<'_, T> {
         Iter {
-            map_iter: self.map.iter(),
+            map_iter: self.map.keys(),
         }
     }
 }
@@ -113,18 +114,16 @@ impl<T> IntoIterator for Set<T> {
     }
 }
 
-impl<T> Clone for Iter<'_, T> {
-    fn clone(&self) -> Self {
-        Self {
-            map_iter: self.map_iter.clone(),
-        }
+impl<T: fmt::Debug> fmt::Debug for Iter<'_, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self.map_iter)
     }
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
     fn next(&mut self) -> Option<Self::Item> {
-        self.map_iter.next().map(|item| item.0)
+        self.map_iter.next()
     }
 }
 
