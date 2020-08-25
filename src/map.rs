@@ -1011,6 +1011,24 @@ impl<'a, K, V> NodeIter<'a, K, V> {
     }
 }
 
+impl<K, V> fmt::Debug for IntoIter<K, V>
+where
+    K: fmt::Debug,
+    V: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[")?;
+        let mut sep = "";
+        for (key, value) in (Iter {
+            node_iter: NodeIter::new(self.node_eater.first, self.node_eater.last),
+        }) {
+            write!(f, "{}({:?}, {:?})", sep, key, value)?;
+            sep = ", ";
+        }
+        write!(f, "]")
+    }
+}
+
 impl<K, V> Iterator for IntoIter<K, V> {
     type Item = (K, V);
     fn next(&mut self) -> Option<Self::Item> {

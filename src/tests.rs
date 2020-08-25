@@ -461,7 +461,7 @@ fn test_map_iter() {
         assert_eq!(kv, Some((value, value)));
     }
 
-    // Test debug formatting
+    // Test debug formatting for non owning iterator
     let mut map = AvlTreeMap::new();
     map.insert(1, "one");
     map.insert(2, "two");
@@ -480,6 +480,30 @@ fn test_map_iter() {
         format!("{:?}", map.values_mut()),
         r#"["one", "two", "three"]"#
     );
+
+    // Test debug formatting for owning iterator
+    let mut map_iter = map.into_iter();
+    assert_eq!(
+        format!("{:?}", map_iter),
+        r#"[(1, "one"), (2, "two"), (3, "three")]"#
+    );
+    assert_eq!(
+        format!("{:?}", map_iter),
+        r#"[(1, "one"), (2, "two"), (3, "three")]"#
+    );
+    map_iter.next();
+    assert_eq!(format!("{:?}", map_iter), r#"[(2, "two"), (3, "three")]"#);
+
+    map_iter.next_back();
+    assert_eq!(format!("{:?}", map_iter), r#"[(2, "two")]"#);
+
+    map_iter.next();
+    assert_eq!(format!("{:?}", map_iter), "[]");
+
+    map_iter.next();
+    map_iter.next();
+    map_iter.next_back();
+    assert_eq!(format!("{:?}", map_iter), "[]");
 }
 
 #[test]
