@@ -144,6 +144,12 @@ impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
     }
 }
 
+impl<T: fmt::Debug> fmt::Debug for IntoIter<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.map_into_iter.fmt_keys(f)
+    }
+}
+
 impl<T> Iterator for IntoIter<T> {
     type Item = T;
     fn next(&mut self) -> Option<Self::Item> {

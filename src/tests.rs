@@ -482,28 +482,31 @@ fn test_map_iter() {
     );
 
     // Test debug formatting for owning iterator
-    let mut map_iter = map.into_iter();
+    let mut map_into_iter = map.into_iter();
     assert_eq!(
-        format!("{:?}", map_iter),
+        format!("{:?}", map_into_iter),
         r#"[(1, "one"), (2, "two"), (3, "three")]"#
     );
     assert_eq!(
-        format!("{:?}", map_iter),
+        format!("{:?}", map_into_iter),
         r#"[(1, "one"), (2, "two"), (3, "three")]"#
     );
-    map_iter.next();
-    assert_eq!(format!("{:?}", map_iter), r#"[(2, "two"), (3, "three")]"#);
+    map_into_iter.next();
+    assert_eq!(
+        format!("{:?}", map_into_iter),
+        r#"[(2, "two"), (3, "three")]"#
+    );
 
-    map_iter.next_back();
-    assert_eq!(format!("{:?}", map_iter), r#"[(2, "two")]"#);
+    map_into_iter.next_back();
+    assert_eq!(format!("{:?}", map_into_iter), r#"[(2, "two")]"#);
 
-    map_iter.next();
-    assert_eq!(format!("{:?}", map_iter), "[]");
+    map_into_iter.next();
+    assert_eq!(format!("{:?}", map_into_iter), "[]");
 
-    map_iter.next();
-    map_iter.next();
-    map_iter.next_back();
-    assert_eq!(format!("{:?}", map_iter), "[]");
+    map_into_iter.next();
+    map_into_iter.next();
+    map_into_iter.next_back();
+    assert_eq!(format!("{:?}", map_into_iter), "[]");
 }
 
 #[test]
@@ -554,6 +557,7 @@ fn test_set_iter() {
     set.insert(2);
     set.insert(3);
     assert_eq!(format!("{:?}", set.iter()), "[1, 2, 3]");
+    assert_eq!(format!("{:?}", set.into_iter()), "[1, 2, 3]");
 }
 
 #[test]

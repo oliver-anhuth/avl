@@ -1011,6 +1011,18 @@ impl<'a, K, V> NodeIter<'a, K, V> {
     }
 }
 
+impl<K, V> IntoIter<K, V>
+where
+    K: fmt::Debug,
+{
+    pub fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let keys = Keys {
+            node_iter: NodeIter::new(self.node_eater.first, self.node_eater.last),
+        };
+        write!(f, "{:?}", keys)
+    }
+}
+
 impl<K, V> fmt::Debug for IntoIter<K, V>
 where
     K: fmt::Debug,
