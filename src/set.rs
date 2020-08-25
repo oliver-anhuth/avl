@@ -150,3 +150,9 @@ impl<T> Iterator for IntoIter<T> {
         self.map_into_iter.next().map(|(k, _)| k)
     }
 }
+
+impl<T> DoubleEndedIterator for IntoIter<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.map_into_iter.next_back().map(|(k, _)| k)
+    }
+}

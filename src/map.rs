@@ -1018,6 +1018,12 @@ impl<K, V> Iterator for IntoIter<K, V> {
     }
 }
 
+impl<K, V> DoubleEndedIterator for IntoIter<K, V> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.node_eater.pop_last()
+    }
+}
+
 impl<K, V> NodeEater<K, V> {
     fn new(mut map: Map<K, V>) -> Self {
         let node_eater = Self {

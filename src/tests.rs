@@ -442,6 +442,25 @@ fn test_map_iter() {
         assert_eq!(kv, Some((value, value)));
     }
 
+    // Test owning reverse iterator
+    let mut map = AvlTreeMap::new();
+    for value in &values {
+        map.insert(*value, *value);
+    }
+
+    let mut values_iter = values.into_iter();
+    let mut map_iter = map.into_iter();
+    for _ in 1..=10 {
+        values_iter.next();
+        values_iter.next_back();
+        map_iter.next();
+        map_iter.next_back();
+    }
+    while let Some(value) = values_iter.next_back() {
+        let kv = map_iter.next_back();
+        assert_eq!(kv, Some((value, value)));
+    }
+
     // Test debug formatting
     let mut map = AvlTreeMap::new();
     map.insert(1, "one");
