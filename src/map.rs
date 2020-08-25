@@ -65,7 +65,8 @@ struct NodeIter<'a, K, V> {
 }
 
 struct NodeEater<K, V> {
-    next: Link<K, V>,
+    first: Link<K, V>,
+    last: Link<K, V>,
 }
 
 impl<K: Ord, V> Map<K, V> {
@@ -1002,57 +1003,118 @@ impl<'a, K, V> NodeIter<'a, K, V> {
 impl<K, V> Iterator for IntoIter<K, V> {
     type Item = (K, V);
     fn next(&mut self) -> Option<Self::Item> {
-        self.node_eater.pop()
+        self.node_eater.pop_first()
     }
 }
 
 impl<K, V> NodeEater<K, V> {
     fn new(mut map: Map<K, V>) -> Self {
         let node_eater = Self {
-            next: map.find_min(),
+            first: map.find_min(),
+            last: map.find_max(),
         };
         map.root.take();
         node_eater
     }
 
-    fn find_min(&mut self) {
-        if let Some(mut next_ptr) = self.next {
-            while let Some(left_ptr) = unsafe { next_ptr.as_ref().left } {
-                next_ptr = left_ptr;
+    fn pop_first(&mut self) -> Option<(K, V)> {
+        let mut first = self.first;
+        if let Some(node_ptr) = first {
+            if self.first == self.last {
+                // Last remaining node in the range -> end iteration
+                self.first = None;
+                self.last = None;
+            } else {
+                unsafe {
+                    // Replace node with right sub tree
+                    match node_ptr.as_ref().parent {
+                        None => {
+                            // Current node has no parent, right child becomes root of the tree
+                            first = node_ptr.as_ref().right;
+                            if let Some(mut root_ptr) = first {
+                                root_ptr.as_mut().parent = None;
+                            }
+                        }
+                        Some(mut parent_ptr) => {
+                            // Right child becomes parent's left sub tree
+                            parent_ptr.as_mut().left = node_ptr.as_ref().right;
+                            if let Some(mut left_ptr) = parent_ptr.as_ref().left {
+                                left_ptr.as_mut().parent = Some(parent_ptr);
+                                first = Some(left_ptr);
+                            } else {
+                                first = Some(parent_ptr);
+                            }
+                        }
+                    }
+
+                    // Next node is smallest child in sub tree.
+                    if let Some(mut next_ptr) = first {
+                        while let Some(left_ptr) = next_ptr.as_ref().left {
+                            next_ptr = left_ptr;
+                        }
+                        first = Some(next_ptr);
+                    }
+
+                    self.first = first;
+                }
             }
-            self.next = Some(next_ptr);
+
+            return Some(unsafe { Node::destroy(node_ptr) });
         }
+
+        None
     }
 
-    fn pop(&mut self) -> Option<(K, V)> {
-        if let Some(node_ptr) = self.next {
-            unsafe {
-                match node_ptr.as_ref().parent {
-                    None => {
-                        self.next = node_ptr.as_ref().right;
-                        if let Some(mut root_ptr) = self.next {
-                            root_ptr.as_mut().parent = None;
+    fn pop_last(&mut self) -> Option<(K, V)> {
+        let mut last = self.last;
+        if let Some(node_ptr) = last {
+            if self.last == self.first {
+                // Last remaining node in the range -> end iteration
+                self.first = None;
+                self.last = None;
+            } else {
+                unsafe {
+                    // Replace node with left sub tree
+                    match node_ptr.as_ref().parent {
+                        None => {
+                            // Current node has no parent, left child becomes root of the tree
+                            last = node_ptr.as_ref().left;
+                            if let Some(mut root_ptr) = last {
+                                root_ptr.as_mut().parent = None;
+                            }
+                        }
+                        Some(mut parent_ptr) => {
+                            // Left child becomes parent's right sub tree
+                            parent_ptr.as_mut().right = node_ptr.as_ref().left;
+                            if let Some(mut right_ptr) = parent_ptr.as_ref().right {
+                                right_ptr.as_mut().parent = Some(parent_ptr);
+                                last = Some(right_ptr);
+                            } else {
+                                last = Some(parent_ptr);
+                            }
                         }
                     }
-                    Some(mut parent_ptr) => {
-                        parent_ptr.as_mut().left = node_ptr.as_ref().right;
-                        if let Some(mut left_ptr) = parent_ptr.as_ref().left {
-                            left_ptr.as_mut().parent = Some(parent_ptr);
-                            self.next = Some(left_ptr);
-                        } else {
-                            self.next = Some(parent_ptr);
+
+                    // Next node is biggest child in sub tree.
+                    if let Some(mut next_ptr) = last {
+                        while let Some(right_ptr) = next_ptr.as_ref().right {
+                            next_ptr = right_ptr;
                         }
+                        last = Some(next_ptr);
                     }
+
+                    self.last = last;
                 }
-                self.find_min();
-                return Some(Node::destroy(node_ptr));
             }
+
+            return Some(unsafe { Node::destroy(node_ptr) });
         }
+
         None
     }
 
     fn postorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
-        Map::traverse(self.next, |_| {}, |_| {}, f);
+        Map::traverse(self.first, |_| {}, |_| {}, f);
     }
 }
 
