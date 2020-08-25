@@ -6,6 +6,17 @@ use std::marker::PhantomData;
 use std::ptr::NonNull;
 
 /// An ordered map implemented with a nearly balanced binary search tree.
+///
+/// ```
+/// use avl::AvlTreeMap;
+/// let mut map = AvlTreeMap::new();
+/// map.insert(0, "zero");
+/// map.insert(1, "one");
+/// map.insert(2, "two");
+/// assert_eq!(map.get(&1), Some(&"one"));
+/// map.remove(&1);
+/// assert!(map.get(&1).is_none());
+/// ```
 pub struct Map<K, V> {
     root: Link<K, V>,
     num_nodes: usize,

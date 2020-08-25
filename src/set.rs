@@ -3,6 +3,17 @@ use std::fmt;
 use super::map::{IntoIter as MapIntoIter, Keys as MapIter, Map};
 
 /// An ordered set implemented with a nearly balanced binary search tree.
+///
+/// ```
+/// use avl::AvlTreeSet;
+/// let mut set = AvlTreeSet::new();
+/// set.insert(0);
+/// set.insert(1);
+/// set.insert(2);
+/// assert_eq!(set.get(&1), Some(&1));
+/// set.remove(&1);
+/// assert!(set.get(&1).is_none());
+/// ```
 pub struct Set<T> {
     map: Map<T, ()>,
 }
