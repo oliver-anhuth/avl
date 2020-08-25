@@ -439,15 +439,14 @@ fn test_map_iter() {
 
     let mut values_iter = values.iter();
     let mut map_iter = map.iter();
+    for _ in 1..=10 {
+        values_iter.next();
+        values_iter.next_back();
+        map_iter.next();
+        map_iter.next_back();
+    }
     while let Some(value) = values_iter.next_back() {
         let kv = map_iter.next_back();
-        assert_eq!(kv, Some((value, value)));
-    }
-
-    let mut rev_values_iter = values.iter().rev();
-    let mut rev_map_iter = map.iter().rev();
-    while let Some(value) = rev_values_iter.next() {
-        let kv = rev_map_iter.next();
         assert_eq!(kv, Some((value, value)));
     }
 
