@@ -428,13 +428,23 @@ fn test_map_iter() {
         into_iter.next();
     }
 
-    let mut map = std::collections::BTreeMap::new();
+    let mut map = AvlTreeMap::new();
     map.insert(1, "one");
     map.insert(2, "two");
     map.insert(3, "three");
     assert_eq!(
         format!("{:?}", map.iter()),
         r#"[(1, "one"), (2, "two"), (3, "three")]"#
+    );
+    assert_eq!(format!("{:?}", map.keys()), "[1, 2, 3]");
+    assert_eq!(format!("{:?}", map.values()), r#"["one", "two", "three"]"#);
+    assert_eq!(
+        format!("{:?}", map.iter_mut()),
+        r#"[(1, "one"), (2, "two"), (3, "three")]"#
+    );
+    assert_eq!(
+        format!("{:?}", map.values_mut()),
+        r#"["one", "two", "three"]"#
     );
 }
 

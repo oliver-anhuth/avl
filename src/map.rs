@@ -688,6 +688,22 @@ impl<K, V> Clone for Iter<'_, K, V> {
     }
 }
 
+impl<K, V> fmt::Debug for Iter<'_, K, V>
+where
+    K: fmt::Debug,
+    V: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[")?;
+        let mut sep = "";
+        for (key, value) in self.clone() {
+            write!(f, "{}({:?}, {:?})", sep, key, value)?;
+            sep = ", ";
+        }
+        write!(f, "]")
+    }
+}
+
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
     fn next(&mut self) -> Option<Self::Item> {
@@ -707,6 +723,21 @@ impl<K, V> Clone for Keys<'_, K, V> {
         Self {
             node_iter: NodeIter::new(self.node_iter.first, self.node_iter.last),
         }
+    }
+}
+
+impl<K, V> fmt::Debug for Keys<'_, K, V>
+where
+    K: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[")?;
+        let mut sep = "";
+        for key in self.clone() {
+            write!(f, "{}{:?}", sep, key)?;
+            sep = ", ";
+        }
+        write!(f, "]")
     }
 }
 
@@ -731,6 +762,21 @@ impl<K, V> Clone for Values<'_, K, V> {
     }
 }
 
+impl<K, V> fmt::Debug for Values<'_, K, V>
+where
+    V: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[")?;
+        let mut sep = "";
+        for value in self.clone() {
+            write!(f, "{}{:?}", sep, value)?;
+            sep = ", ";
+        }
+        write!(f, "]")
+    }
+}
+
 impl<'a, K, V> Iterator for Values<'a, K, V> {
     type Item = &'a V;
     fn next(&mut self) -> Option<Self::Item> {
@@ -741,6 +787,24 @@ impl<'a, K, V> Iterator for Values<'a, K, V> {
                 Some(value)
             },
         }
+    }
+}
+
+impl<K, V> fmt::Debug for IterMut<'_, K, V>
+where
+    K: fmt::Debug,
+    V: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[")?;
+        let mut sep = "";
+        for (key, value) in (Iter {
+            node_iter: NodeIter::new(self.node_iter.first, self.node_iter.last),
+        }) {
+            write!(f, "{}({:?}, {:?})", sep, key, value)?;
+            sep = ", ";
+        }
+        write!(f, "]")
     }
 }
 
@@ -755,6 +819,23 @@ impl<'a, K, V> Iterator for IterMut<'a, K, V> {
                 Some((key, value))
             },
         }
+    }
+}
+
+impl<K, V> fmt::Debug for ValuesMut<'_, K, V>
+where
+    V: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[")?;
+        let mut sep = "";
+        for value in (Values {
+            node_iter: NodeIter::new(self.node_iter.first, self.node_iter.last),
+        }) {
+            write!(f, "{}{:?}", sep, value)?;
+            sep = ", "
+        }
+        write!(f, "]")
     }
 }
 
