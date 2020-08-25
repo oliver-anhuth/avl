@@ -1008,10 +1008,10 @@ impl<K, V> Iterator for IntoIter<K, V> {
 
 impl<K, V> NodeEater<K, V> {
     fn new(mut map: Map<K, V>) -> Self {
-        let mut node_eater = Self {
-            next: map.root.take(),
+        let node_eater = Self {
+            next: map.find_min(),
         };
-        node_eater.find_min();
+        map.root.take();
         node_eater
     }
 
