@@ -173,13 +173,14 @@ fn test_insert() {
 
     let mut map = AvlTreeMap::new();
     for value in &values {
-        assert!(map.insert(*value, *value));
+        assert!(map.insert(*value, *value).is_none());
         map.check_consistency();
     }
     assert!(map.len() == values.len());
 
     for value in &values {
-        assert!(!map.insert(*value, *value));
+        assert_eq!(map.insert(*value, *value), Some(*value));
+        assert!(map.contains_key(value));
     }
     assert!(map.len() == values.len());
 }
@@ -188,7 +189,7 @@ fn test_insert() {
 fn test_insert_sorted_range() {
     let mut map = AvlTreeMap::new();
     for value in 0..N {
-        assert!(map.insert(value, value));
+        assert!(map.insert(value, value).is_none());
         map.check_consistency();
     }
     assert!(map.len() == N as usize);
@@ -205,13 +206,13 @@ fn test_insert_shuffled_range() {
 
     let mut map = AvlTreeMap::new();
     for value in &values {
-        assert!(map.insert(*value, "foo"));
+        assert!(map.insert(*value, "foo").is_none());
         map.check_consistency();
     }
     assert!(map.len() == values.len());
 
     for value in &values {
-        assert!(!map.insert(*value, "bar"));
+        assert_eq!(map.insert(*value, "bar"), Some("foo"));
     }
     assert!(map.len() == values.len());
     assert!(map.get(&-42).is_none());
@@ -267,7 +268,7 @@ fn test_clear() {
     assert!(map.len() == 0);
 
     for value in &values {
-        assert!(map.insert(*value, String::from("bar")));
+        assert!(map.insert(*value, String::from("bar")).is_none());
     }
     assert!(!map.is_empty());
     assert!(map.len() == values.len());

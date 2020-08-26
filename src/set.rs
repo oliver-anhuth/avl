@@ -43,12 +43,12 @@ impl<T: Ord> Set<T> {
 
     /// Returns true if the set contains a value.
     pub fn contains(&self, value: &T) -> bool {
-        self.map.get_key_value(value).is_some()
+        self.map.contains_key(value)
     }
 
     /// Inserts a value into the set.
     pub fn insert(&mut self, value: T) -> bool {
-        self.map.insert(value, ())
+        self.map.insert(value, ()).is_none()
     }
 
     /// Removes a value from the set.

@@ -3,6 +3,7 @@
 use std::cmp::{self, Ordering};
 use std::fmt;
 use std::marker::PhantomData;
+use std::mem;
 use std::ptr::NonNull;
 
 /// An ordered map implemented with a nearly balanced binary search tree.
@@ -117,19 +118,36 @@ impl<K: Ord, V> Map<K, V> {
         None
     }
 
-    /// Inserts a key-value pair into the map.
-    pub fn insert(&mut self, key: K, value: V) -> bool {
-        if let Some((parent, mut link_ptr)) = self.find_insert_pos(&key) {
-            unsafe {
-                *link_ptr.as_mut() = Some(Node::create(parent, key, value));
-            }
-            self.num_nodes += 1;
-            if let Some(parent_ptr) = parent {
-                self.rebalance_once(parent_ptr);
-            }
-            return true;
+    /// Returns true if the key is in the map, else false.
+    pub fn contains_key(&self, key: &K) -> bool {
+        match self.find(key) {
+            Some(_) => true,
+            None => false,
         }
-        false
+    }
+
+    /// Inserts a key-value pair into the map.
+    /// Returns None if the key is not in the map.
+    /// Updates the value if the key is already in the map and returns the old value.
+    pub fn insert(&mut self, key: K, mut value: V) -> Option<V> {
+        match self.find_insert_pos(&key) {
+            Ok((parent, mut link_ptr)) => {
+                unsafe {
+                    *link_ptr.as_mut() = Some(Node::create(parent, key, value));
+                }
+                self.num_nodes += 1;
+                if let Some(parent_ptr) = parent {
+                    self.rebalance_once(parent_ptr);
+                }
+                None
+            }
+            Err(mut node_ptr) => {
+                unsafe {
+                    mem::swap(&mut node_ptr.as_mut().value, &mut value);
+                }
+                Some(value)
+            }
+        }
     }
 
     /// Removes a key from the map.
@@ -281,13 +299,13 @@ impl<K: Ord, V> Map<K, V> {
         current
     }
 
-    fn find_insert_pos(&mut self, key: &K) -> Option<(Link<K, V>, LinkPtr<K, V>)> {
+    fn find_insert_pos(&mut self, key: &K) -> Result<(Link<K, V>, LinkPtr<K, V>), NodePtr<K, V>> {
         let mut parent: Link<K, V> = None;
         let mut link_ptr: LinkPtr<K, V> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
         unsafe {
             while let Some(mut node_ptr) = link_ptr.as_ref() {
                 if *key == node_ptr.as_ref().key {
-                    return None;
+                    return Err(node_ptr);
                 } else {
                     parent = *link_ptr.as_ref();
                     if *key < node_ptr.as_ref().key {
@@ -298,7 +316,7 @@ impl<K: Ord, V> Map<K, V> {
                 }
             }
         }
-        Some((parent, link_ptr))
+        Ok((parent, link_ptr))
     }
 }
 
