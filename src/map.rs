@@ -251,35 +251,35 @@ impl<K, V> Map<K, V> {
     /// Gets an iterator over the entries of the map, sorted by key.
     pub fn iter(&self) -> Iter<'_, K, V> {
         Iter {
-            node_iter: NodeIter::new(self.find_min(), self.find_max()),
+            node_iter: unsafe { NodeIter::new(self.find_min(), self.find_max()) },
         }
     }
 
     /// Gets an iterator over the keys of the map, in sorted order.
     pub fn keys(&self) -> Keys<'_, K, V> {
         Keys {
-            node_iter: NodeIter::new(self.find_min(), self.find_max()),
+            node_iter: unsafe { NodeIter::new(self.find_min(), self.find_max()) },
         }
     }
 
     /// Gets an iterator over the values of the map, in order by key.
     pub fn values(&self) -> Values<'_, K, V> {
         Values {
-            node_iter: NodeIter::new(self.find_min(), self.find_max()),
+            node_iter: unsafe { NodeIter::new(self.find_min(), self.find_max()) },
         }
     }
 
     /// Gets a mutable iterator over the values of the map, in order by key.
     pub fn values_mut(&self) -> ValuesMut<'_, K, V> {
         ValuesMut {
-            node_iter: NodeIter::new(self.find_min(), self.find_max()),
+            node_iter: unsafe { NodeIter::new(self.find_min(), self.find_max()) },
         }
     }
 
     /// Gets a mutable iterator over the entries of the map, sorted by key.
     pub fn iter_mut(&mut self) -> IterMut<K, V> {
         IterMut {
-            node_iter: NodeIter::new(self.find_min(), self.find_max()),
+            node_iter: unsafe { NodeIter::new(self.find_min(), self.find_max()) },
         }
     }
 }
@@ -723,7 +723,7 @@ impl<K, V> IntoIterator for Map<K, V> {
 }
 
 impl<K, V> Node<K, V> {
-    unsafe fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
+    fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
         let boxed = Box::new(Node {
             parent,
             left: None,
@@ -732,7 +732,7 @@ impl<K, V> Node<K, V> {
             key,
             value,
         });
-        NodePtr::new_unchecked(Box::into_raw(boxed))
+        unsafe { NodePtr::new_unchecked(Box::into_raw(boxed)) }
     }
 
     unsafe fn destroy(node_ptr: NodePtr<K, V>) -> (K, V) {
@@ -744,7 +744,7 @@ impl<K, V> Node<K, V> {
 impl<K, V> Clone for Iter<'_, K, V> {
     fn clone(&self) -> Self {
         Self {
-            node_iter: NodeIter::new(self.node_iter.first, self.node_iter.last),
+            node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
         }
     }
 }
@@ -795,7 +795,7 @@ impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
 impl<K, V> Clone for Keys<'_, K, V> {
     fn clone(&self) -> Self {
         Self {
-            node_iter: NodeIter::new(self.node_iter.first, self.node_iter.last),
+            node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
         }
     }
 }
@@ -843,7 +843,7 @@ impl<'a, K, V> DoubleEndedIterator for Keys<'a, K, V> {
 impl<K, V> Clone for Values<'_, K, V> {
     fn clone(&self) -> Self {
         Self {
-            node_iter: NodeIter::new(self.node_iter.first, self.node_iter.last),
+            node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
         }
     }
 }
@@ -895,9 +895,11 @@ where
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[")?;
         let mut sep = "";
-        for (key, value) in (Iter {
-            node_iter: NodeIter::new(self.node_iter.first, self.node_iter.last),
-        }) {
+        // Safe to access elements in remaining range, no mutable references have been created yet
+        let iter = Iter {
+            node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
+        };
+        for (key, value) in iter {
             write!(f, "{}({:?}, {:?})", sep, key, value)?;
             sep = ", ";
         }
@@ -939,9 +941,11 @@ where
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[")?;
         let mut sep = "";
-        for value in (Values {
-            node_iter: NodeIter::new(self.node_iter.first, self.node_iter.last),
-        }) {
+        // Safe to access elements in remaining range, no mutable references have been created yet
+        let values = Values {
+            node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
+        };
+        for value in values {
             write!(f, "{}{:?}", sep, value)?;
             sep = ", "
         }
@@ -975,7 +979,7 @@ impl<'a, K, V> DoubleEndedIterator for ValuesMut<'a, K, V> {
 }
 
 impl<'a, K, V> NodeIter<'a, K, V> {
-    fn new(first: Link<K, V>, last: Link<K, V>) -> Self {
+    unsafe fn new(first: Link<K, V>, last: Link<K, V>) -> Self {
         NodeIter {
             first,
             last,
@@ -1065,8 +1069,9 @@ where
     K: fmt::Debug,
 {
     pub fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Safe to access elements in remaining range, no mutable references have been created yet
         let keys = Keys {
-            node_iter: NodeIter::new(self.node_eater.first, self.node_eater.last),
+            node_iter: unsafe { NodeIter::new(self.node_eater.first, self.node_eater.last) },
         };
         write!(f, "{:?}", keys)
     }
@@ -1080,9 +1085,11 @@ where
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[")?;
         let mut sep = "";
-        for (key, value) in (Iter {
-            node_iter: NodeIter::new(self.node_eater.first, self.node_eater.last),
-        }) {
+        // Safe to access elements in remaining range, no mutable references have been created yet
+        let iter = Iter {
+            node_iter: unsafe { NodeIter::new(self.node_eater.first, self.node_eater.last) },
+        };
+        for (key, value) in iter {
             write!(f, "{}({:?}, {:?})", sep, key, value)?;
             sep = ", ";
         }
