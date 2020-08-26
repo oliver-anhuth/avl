@@ -38,6 +38,9 @@ type NodePtr<K, V> = NonNull<Node<K, V>>;
 type Link<K, V> = Option<NodePtr<K, V>>;
 type LinkPtr<K, V> = NonNull<Link<K, V>>;
 
+/// Insert position is parent + link to modify.
+type InsertPos<K, V> = (Link<K, V>, LinkPtr<K, V>);
+
 /// An iterator over the entries of a map.
 pub struct Iter<'a, K, V> {
     node_iter: NodeIter<'a, K, V>,
@@ -120,10 +123,7 @@ impl<K: Ord, V> Map<K, V> {
 
     /// Returns true if the key is in the map, else false.
     pub fn contains_key(&self, key: &K) -> bool {
-        match self.find(key) {
-            Some(_) => true,
-            None => false,
-        }
+        self.find(key).is_some()
     }
 
     /// Inserts a key-value pair into the map.
@@ -299,7 +299,7 @@ impl<K: Ord, V> Map<K, V> {
         current
     }
 
-    fn find_insert_pos(&mut self, key: &K) -> Result<(Link<K, V>, LinkPtr<K, V>), NodePtr<K, V>> {
+    fn find_insert_pos(&mut self, key: &K) -> Result<InsertPos<K, V>, NodePtr<K, V>> {
         let mut parent: Link<K, V> = None;
         let mut link_ptr: LinkPtr<K, V> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
         unsafe {
@@ -623,14 +623,14 @@ impl<K, V> Map<K, V> {
         In: FnMut(NodePtr<K, V>),
         Post: FnMut(NodePtr<K, V>),
     {
-        if let Some(mut node_ptr) = start {
-            #[allow(clippy::enum_variant_names)]
-            enum Direction {
-                FromParent,
-                FromLeft,
-                FromRight,
-            }
+        #[allow(clippy::enum_variant_names)]
+        enum Direction {
+            FromParent,
+            FromLeft,
+            FromRight,
+        }
 
+        if let Some(mut node_ptr) = start {
             let mut dir = Direction::FromParent;
             loop {
                 match dir {
