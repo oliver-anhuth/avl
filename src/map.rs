@@ -331,7 +331,15 @@ impl<K, V> Map<K, V> {
         unsafe {
             // Check if node to-unlink has right sub tree
             if let Some(mut min_child_ptr) = node_ptr.as_ref().right {
-                // Find smallest child node in right sub tree
+                // Replace node by smallest child in right sub tree
+                //  |             |
+                //  *             1
+                // / \           / \
+                //    A             A
+                //   / \    =>     / \
+                //  1             B
+                //   \
+                //    B
                 let mut min_child_parent_ptr = node_ptr;
                 while let Some(left_ptr) = min_child_ptr.as_ref().left {
                     min_child_parent_ptr = min_child_ptr;
@@ -381,6 +389,10 @@ impl<K, V> Map<K, V> {
                 self.rebalance(rebalance_from);
             } else {
                 // Node to-unlink is stem or leaf, unlink from tree.
+                //   |        |
+                //   *   =>   A
+                //  /
+                // A
                 debug_assert!(node_ptr.as_ref().right.is_none());
                 if let Some(mut left_ptr) = node_ptr.as_ref().left {
                     left_ptr.as_mut().parent = node_ptr.as_ref().parent;
@@ -434,6 +446,16 @@ impl<K, V> Map<K, V> {
         }
     }
 
+    /// Rotate given node to the left.
+    /// ```none
+    ///  |                |
+    ///  *                1
+    /// / \              / \
+    ///    1      =>    *   2
+    ///   / \          /   / \
+    ///      2
+    ///     / \
+    /// ```
     fn rotate_left(&mut self, mut node_ptr: NodePtr<K, V>) {
         unsafe {
             if let Some(mut right_ptr) = node_ptr.as_ref().right {
@@ -463,6 +485,15 @@ impl<K, V> Map<K, V> {
         }
     }
 
+    /// Rotate given node to the right.
+    /// ```none
+    ///      *            1
+    ///     / \          / \
+    ///    1      =>    2   *
+    ///   / \          / \ / \
+    ///  2
+    /// / \
+    /// ```
     fn rotate_right(&mut self, mut node_ptr: NodePtr<K, V>) {
         unsafe {
             if let Some(mut left_ptr) = node_ptr.as_ref().left {
@@ -1077,6 +1108,10 @@ impl<K, V> NodeEater<K, V> {
                     match node_ptr.as_ref().parent {
                         None => {
                             // Current node has no parent, right child becomes root of the tree
+                            // *            1
+                            //  \     =>   / \
+                            //   1
+                            //  / \
                             first = node_ptr.as_ref().right;
                             if let Some(mut root_ptr) = first {
                                 root_ptr.as_mut().parent = None;
@@ -1084,6 +1119,12 @@ impl<K, V> NodeEater<K, V> {
                         }
                         Some(mut parent_ptr) => {
                             // Right child becomes parent's left sub tree
+                            //   A            A
+                            //  / \          / \
+                            // *      =>    1
+                            //  \          / \
+                            //   1
+                            //  / \
                             parent_ptr.as_mut().left = node_ptr.as_ref().right;
                             if let Some(mut left_ptr) = parent_ptr.as_ref().left {
                                 left_ptr.as_mut().parent = Some(parent_ptr);
@@ -1125,6 +1166,11 @@ impl<K, V> NodeEater<K, V> {
                     match node_ptr.as_ref().parent {
                         None => {
                             // Current node has no parent, left child becomes root of the tree
+                            // Current node has no parent, right child becomes root of the tree
+                            //    *         1
+                            //   /    =>   / \
+                            //  1
+                            // / \
                             last = node_ptr.as_ref().left;
                             if let Some(mut root_ptr) = last {
                                 root_ptr.as_mut().parent = None;
@@ -1132,6 +1178,12 @@ impl<K, V> NodeEater<K, V> {
                         }
                         Some(mut parent_ptr) => {
                             // Left child becomes parent's right sub tree
+                            //   A           A
+                            //  / \         / \
+                            //     *   =>      1
+                            //    /           / \
+                            //   1
+                            //  / \
                             parent_ptr.as_mut().right = node_ptr.as_ref().left;
                             if let Some(mut right_ptr) = parent_ptr.as_ref().right {
                                 right_ptr.as_mut().parent = Some(parent_ptr);
