@@ -63,6 +63,11 @@ impl<T: Ord> Set<T> {
         self.map.remove_entry(value).map(|(k, _)| k)
     }
 
+    /// Moves all values from other into self, leaving other empty.
+    pub fn append(&mut self, other: &mut Self) {
+        self.map.append(&mut other.map);
+    }
+
     /// Asserts that the internal tree structure is consistent.
     #[cfg(any(test, feature = "consistency_check"))]
     pub fn check_consistency(&self) {

@@ -171,6 +171,15 @@ impl<K: Ord, V> Map<K, V> {
         None
     }
 
+    /// Moves all elements from other into self, leaving other empty.
+    pub fn append(&mut self, other: &mut Self) {
+        let mut to_append = Self::new();
+        mem::swap(&mut to_append, other);
+        for (key, value) in to_append {
+            self.insert(key, value);
+        }
+    }
+
     /// Asserts that the internal tree structure is consistent.
     #[cfg(any(test, feature = "consist^ency_check"))]
     pub fn check_consistency(&self) {

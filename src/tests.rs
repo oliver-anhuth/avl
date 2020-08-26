@@ -1,4 +1,5 @@
 use super::{AvlTreeMap, AvlTreeSet};
+use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
 
 const N: i32 = 1_000;
 const LARGE_N: i32 = 10_000_000;
@@ -41,9 +42,9 @@ fn test_new() {
 #[test]
 fn test_rebalance() {
     {
-        //     3 ->   2
-        //    /      / \
-        //   2      1   3
+        //     3          2
+        //    /          / \
+        //   2     =>   1   3
         //  /
         // 1
         let mut map = AvlTreeMap::new();
@@ -54,11 +55,11 @@ fn test_rebalance() {
         assert_eq!(map.height(), 1);
     }
     {
-        //     3   ->     3 ->   2
-        //    / \        /      / \
-        //   2   4      2      1   3
-        //  /          /
-        // 1          1
+        //     3              3          2
+        //    / \            /          / \
+        //   2   4   =>     2     =>   1   3
+        //  /              /
+        // 1              1
         let mut map = AvlTreeMap::new();
         map.insert(3, ());
         map.insert(2, ());
@@ -71,9 +72,9 @@ fn test_rebalance() {
         assert_eq!(map.height(), 1);
     }
     {
-        //   3  ->   2
-        //  /       / \
-        // 1       1   3
+        //   3          2
+        //  /          / \
+        // 1     =>   1   3
         //  \
         //   2
         let mut map = AvlTreeMap::new();
@@ -84,11 +85,11 @@ fn test_rebalance() {
         assert_eq!(map.height(), 1);
     }
     {
-        //   3   ->   3  ->   2
-        //  / \      /       / \
-        // 1   4    1       1   3
-        //  \        \
-        //   2        2
+        //   3            3          2
+        //  / \          /          / \
+        // 1   4   =>   1     =>   1   3
+        //  \            \
+        //   2            2
         let mut map = AvlTreeMap::new();
         map.insert(3, ());
         map.insert(1, ());
@@ -101,9 +102,9 @@ fn test_rebalance() {
         assert_eq!(map.height(), 1);
     }
     {
-        // 1 ->    2
-        //  \     / \
-        //   2   1   3
+        // 1              2
+        //  \            / \
+        //   2     =>   1   3
         //    \
         //     3
         let mut map = AvlTreeMap::new();
@@ -114,11 +115,11 @@ fn test_rebalance() {
         assert_eq!(map.height(), 1);
     }
     {
-        //   1     -> 1     ->    2
-        //  / \        \         / \
-        // 0   2        2       1   3
-        //      \        \
-        //       3        3
+        //   1            1              2
+        //  / \            \            / \
+        // 0   2     =>     2     =>   1   3
+        //      \            \
+        //       3            3
         let mut map = AvlTreeMap::new();
         map.insert(1, ());
         map.insert(0, ());
@@ -131,9 +132,9 @@ fn test_rebalance() {
         assert_eq!(map.height(), 1);
     }
     {
-        // 1   ->  2
-        //  \     / \
-        //   3   1   3
+        // 1            2
+        //  \          / \
+        //   3   =>   1   3
         //  /
         // 2
         let mut map = AvlTreeMap::new();
@@ -144,11 +145,11 @@ fn test_rebalance() {
         assert_eq!(map.height(), 1);
     }
     {
-        //   1   ->  1   ->  2
-        //  / \       \     / \
-        // 0   3       3   1   3
-        //    /       /
-        //   2       2
+        //   1          1            2
+        //  / \          \          / \
+        // 0   3   =>     3   =>   1   3
+        //    /          /
+        //   2          2
         let mut map = AvlTreeMap::new();
         map.insert(1, ());
         map.insert(0, ());
@@ -164,8 +165,6 @@ fn test_rebalance() {
 
 #[test]
 fn test_insert() {
-    use rand::{rngs::StdRng, Rng, SeedableRng};
-
     let mut rng = StdRng::seed_from_u64(0);
     let mut values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
     values.sort();
@@ -198,8 +197,6 @@ fn test_insert_sorted_range() {
 
 #[test]
 fn test_insert_shuffled_range() {
-    use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
-
     let mut values: Vec<i32> = (0..N).collect();
     let mut rng = StdRng::seed_from_u64(0);
     values.shuffle(&mut rng);
@@ -220,8 +217,6 @@ fn test_insert_shuffled_range() {
 
 #[test]
 fn test_get() {
-    use rand::{rngs::StdRng, Rng, SeedableRng};
-
     let mut rng = StdRng::seed_from_u64(0);
     let values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
 
@@ -249,8 +244,6 @@ fn test_get() {
 
 #[test]
 fn test_clear() {
-    use rand::{rngs::StdRng, Rng, SeedableRng};
-
     let mut rng = StdRng::seed_from_u64(0);
     let mut values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
     values.sort();
@@ -277,8 +270,6 @@ fn test_clear() {
 
 #[test]
 fn test_remove() {
-    use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
-
     let mut rng = StdRng::seed_from_u64(0);
     let mut values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
     values.sort();
@@ -301,29 +292,27 @@ fn test_remove() {
 }
 
 #[test]
-fn test_set() {
-    use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
-
+fn test_append() {
     let mut rng = StdRng::seed_from_u64(0);
-    let mut values: Vec<i32> = (0..N).map(|_| rng.gen_range(0, N)).collect();
+    let n = N & 1;
+    let mut values: Vec<i32> = (0..n).map(|_| rng.gen()).collect();
 
-    let mut set = AvlTreeSet::new();
-    for value in &values {
-        set.insert(*value);
-    }
-    set.check_consistency();
-
-    for value in &values {
-        let got = set.get(value);
-        assert_eq!(got, Some(value));
+    let mut map = AvlTreeMap::new();
+    let mut map2 = AvlTreeMap::new();
+    for chunk in values.chunks_exact(2) {
+        map.insert(chunk[0], "foo");
+        map2.insert(chunk[1], "bar");
     }
 
-    values.shuffle(&mut rng);
-    values.resize(values.len() / 2, 0);
-    for value in &values {
-        set.remove(value);
+    values.sort();
+    values.dedup();
+
+    map.append(&mut map2);
+    assert!(map2.is_empty());
+    let mut map_keys = map.keys();
+    for value in values {
+        assert_eq!(map_keys.next(), Some(&value));
     }
-    set.check_consistency();
 }
 
 #[test]
@@ -508,6 +497,32 @@ fn test_map_iter() {
     map_into_iter.next();
     map_into_iter.next_back();
     assert_eq!(format!("{:?}", map_into_iter), "[]");
+}
+
+#[test]
+fn test_set() {
+    use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
+
+    let mut rng = StdRng::seed_from_u64(0);
+    let mut values: Vec<i32> = (0..N).map(|_| rng.gen_range(0, N)).collect();
+
+    let mut set = AvlTreeSet::new();
+    for value in &values {
+        set.insert(*value);
+    }
+    set.check_consistency();
+
+    for value in &values {
+        let got = set.get(value);
+        assert_eq!(got, Some(value));
+    }
+
+    values.shuffle(&mut rng);
+    values.resize(values.len() / 2, 0);
+    for value in &values {
+        set.remove(value);
+    }
+    set.check_consistency();
 }
 
 #[test]
