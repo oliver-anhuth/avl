@@ -4,7 +4,7 @@
 
 An ordered map / set implemented with an AVL tree (nearly balanced binary search tree) in Rust.
 
-```Rust
+```rust
 use avl::AvlTreeMap;
 
 let mut map = AvlTreeMap::new();
