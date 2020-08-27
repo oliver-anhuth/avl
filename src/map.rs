@@ -517,6 +517,7 @@ impl<K, V> AvlTreeMap<K, V> {
 
     /// Rotate given node to the right.
     /// ```none
+    ///      |            |
     ///      *            1
     ///     / \          / \
     ///    1      =>    2   *
