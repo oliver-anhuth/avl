@@ -697,6 +697,74 @@ impl<K: Ord, V> Default for AvlTreeMap<K, V> {
     }
 }
 
+impl<K: Clone, V: Clone> Clone for AvlTreeMap<K, V> {
+    fn clone(&self) -> Self {
+        let mut other = Self {
+            root: None,
+            num_nodes: self.num_nodes,
+        };
+
+        if let Some(mut node_ptr) = self.root {
+            unsafe {
+                let mut other_node_ptr = Node::create(
+                    None,
+                    node_ptr.as_ref().key.clone(),
+                    node_ptr.as_ref().value.clone(),
+                );
+                other.root = Some(other_node_ptr);
+
+                let height = node_ptr.as_ref().height as usize;
+                let mut nodes_with_right = Vec::with_capacity(height);
+
+                loop {
+                    if let Some(left_ptr) = node_ptr.as_ref().left {
+                        let other_left_ptr = Node::create(
+                            Some(other_node_ptr),
+                            left_ptr.as_ref().key.clone(),
+                            left_ptr.as_ref().value.clone(),
+                        );
+                        other_node_ptr.as_mut().left = Some(other_left_ptr);
+
+                        if node_ptr.as_ref().right.is_some() {
+                            nodes_with_right.push((node_ptr, other_node_ptr));
+                        }
+
+                        node_ptr = left_ptr;
+                        other_node_ptr = other_left_ptr;
+
+                        continue;
+                    }
+
+                    if node_ptr.as_ref().right.is_none() {
+                        if let Some((next_ptr, other_next_ptr)) = nodes_with_right.pop() {
+                            node_ptr = next_ptr;
+                            other_node_ptr = other_next_ptr;
+                        }
+                    }
+
+                    if let Some(right_ptr) = node_ptr.as_ref().right {
+                        let other_right_ptr = Node::create(
+                            Some(other_node_ptr),
+                            right_ptr.as_ref().key.clone(),
+                            right_ptr.as_ref().value.clone(),
+                        );
+                        other_node_ptr.as_mut().right = Some(other_right_ptr);
+
+                        node_ptr = right_ptr;
+                        other_node_ptr = other_right_ptr;
+
+                        continue;
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        other
+    }
+}
+
 impl<K, V> fmt::Debug for AvlTreeMap<K, V>
 where
     K: fmt::Debug,

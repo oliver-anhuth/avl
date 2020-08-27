@@ -394,7 +394,7 @@ fn test_map_iter() {
 
     // Test consuming iterator
     let mut value_iter = values.iter();
-    for (key, mapped) in map {
+    for (key, mapped) in map.clone() {
         let value = value_iter.next();
         assert!(value.is_some());
         let value = value.unwrap();
@@ -403,22 +403,12 @@ fn test_map_iter() {
     }
     assert!(value_iter.next().is_none());
 
-    let mut map = AvlTreeMap::new();
-    for value in &values {
-        map.insert(*value, value.wrapping_add(42));
-    }
-
-    let mut into_iter = map.into_iter();
+    let mut into_iter = map.clone().into_iter();
     for _ in 0..N / 10 {
         into_iter.next();
     }
 
     // Test reverse iterator
-    let mut map = AvlTreeMap::new();
-    for value in &values {
-        map.insert(*value, *value);
-    }
-
     let mut values_iter = values.iter();
     let mut map_iter = map.iter();
     for _ in 1..=10 {
@@ -433,13 +423,8 @@ fn test_map_iter() {
     }
 
     // Test owning reverse iterator
-    let mut map = AvlTreeMap::new();
-    for value in &values {
-        map.insert(*value, *value);
-    }
-
-    let mut values_iter = values.into_iter();
-    let mut map_iter = map.into_iter();
+    let mut values_iter = values.iter();
+    let mut map_iter = map.clone().into_iter();
     for _ in 1..=10 {
         values_iter.next();
         values_iter.next_back();
@@ -448,7 +433,7 @@ fn test_map_iter() {
     }
     while let Some(value) = values_iter.next_back() {
         let kv = map_iter.next_back();
-        assert_eq!(kv, Some((value, value)));
+        assert_eq!(kv, Some((*value, *value)));
     }
 
     // Test debug formatting for non owning iterator
@@ -472,7 +457,7 @@ fn test_map_iter() {
     );
 
     // Test debug formatting for owning iterator
-    let mut map_into_iter = map.into_iter();
+    let mut map_into_iter = map.clone().into_iter();
     assert_eq!(
         format!("{:?}", map_into_iter),
         r#"[(1, "one"), (2, "two"), (3, "three")]"#
@@ -559,7 +544,7 @@ fn test_set_iter() {
     assert!(value_iter.next().is_none());
 
     let mut value_iter = values.iter();
-    for key in set {
+    for key in set.clone() {
         let value = value_iter.next();
         assert!(value.is_some());
         let value = value.unwrap();
