@@ -4,6 +4,7 @@
 
 use std::cmp::{self, Ordering};
 use std::fmt;
+use std::iter::FromIterator;
 use std::marker::PhantomData;
 use std::mem;
 use std::ptr::NonNull;
@@ -762,6 +763,16 @@ impl<K: Clone, V: Clone> Clone for AvlTreeMap<K, V> {
         }
 
         other
+    }
+}
+
+impl<K: Ord, V> FromIterator<(K, V)> for AvlTreeMap<K, V> {
+    fn from_iter<I: IntoIterator<Item = (K, V)>>(iter: I) -> Self {
+        let mut map = Self::new();
+        for (key, value) in iter {
+            map.insert(key, value);
+        }
+        map
     }
 }
 

@@ -1,6 +1,7 @@
 //! An ordered set implemented with an AVL tree.
 
 use std::fmt;
+use std::iter::FromIterator;
 
 use super::map::{AvlTreeMap, IntoIter as MapIntoIter, Keys as MapIter};
 
@@ -108,6 +109,16 @@ impl<T: Ord> Default for AvlTreeSet<T> {
     /// Creates an empty set.
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<T: Ord> FromIterator<T> for AvlTreeSet<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut set = Self::new();
+        for value in iter {
+            set.insert(value);
+        }
+        set
     }
 }
 

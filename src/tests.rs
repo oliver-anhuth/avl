@@ -437,10 +437,10 @@ fn test_map_iter() {
     }
 
     // Test debug formatting for non owning iterator
-    let mut map = AvlTreeMap::new();
-    map.insert(1, "one");
-    map.insert(2, "two");
-    map.insert(3, "three");
+    let mut map: AvlTreeMap<i32, &str> = vec![1, 2, 3]
+        .into_iter()
+        .zip(vec!["one", "two", "three"].into_iter())
+        .collect();
     assert_eq!(
         format!("{:?}", map.iter()),
         r#"[(1, "one"), (2, "two"), (3, "three")]"#
@@ -553,7 +553,7 @@ fn test_set_iter() {
     assert!(value_iter.next().is_none());
 
     // Test debug formatting
-    let mut set = AvlTreeSet::new();
+    let mut set: AvlTreeSet<i32> = (1..4).collect();
     set.insert(1);
     set.insert(2);
     set.insert(3);
