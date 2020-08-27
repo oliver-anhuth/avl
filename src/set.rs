@@ -1,8 +1,10 @@
+//! An ordered set implemented with an AVL tree.
+
 use std::fmt;
 
-use super::map::{IntoIter as MapIntoIter, Keys as MapIter, Map};
+use super::map::{AvlTreeMap, IntoIter as MapIntoIter, Keys as MapIter};
 
-/// An ordered set implemented with a nearly balanced binary search tree.
+/// An ordered set implemented with an AVL tree.
 ///
 /// ```
 /// use avl::AvlTreeSet;
@@ -14,8 +16,8 @@ use super::map::{IntoIter as MapIntoIter, Keys as MapIter, Map};
 /// set.remove(&1);
 /// assert!(set.get(&1).is_none());
 /// ```
-pub struct Set<T> {
-    map: Map<T, ()>,
+pub struct AvlTreeSet<T> {
+    map: AvlTreeMap<T, ()>,
 }
 
 /// An iterator over the values of a set.
@@ -29,11 +31,13 @@ pub struct IntoIter<T> {
     map_into_iter: MapIntoIter<T, ()>,
 }
 
-impl<T: Ord> Set<T> {
+impl<T: Ord> AvlTreeSet<T> {
     /// Creates an empty set.
     /// No memory is allocated until the first item is inserted.
     pub fn new() -> Self {
-        Self { map: Map::new() }
+        Self {
+            map: AvlTreeMap::new(),
+        }
     }
 
     /// Returns a reference to the value in the set that is equal to the given value.
@@ -75,7 +79,7 @@ impl<T: Ord> Set<T> {
     }
 }
 
-impl<T> Set<T> {
+impl<T> AvlTreeSet<T> {
     /// Returns true if the set contains no elements.
     pub fn is_empty(&self) -> bool {
         self.map.is_empty()
@@ -99,20 +103,20 @@ impl<T> Set<T> {
     }
 }
 
-impl<T: Ord> Default for Set<T> {
+impl<T: Ord> Default for AvlTreeSet<T> {
     /// Creates an empty set.
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T: fmt::Debug> fmt::Debug for Set<T> {
+impl<T: fmt::Debug> fmt::Debug for AvlTreeSet<T> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_set().entries(self.iter()).finish()
     }
 }
 
-impl<'a, T> IntoIterator for &'a Set<T> {
+impl<'a, T> IntoIterator for &'a AvlTreeSet<T> {
     type Item = &'a T;
     type IntoIter = Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
@@ -120,7 +124,7 @@ impl<'a, T> IntoIterator for &'a Set<T> {
     }
 }
 
-impl<T> IntoIterator for Set<T> {
+impl<T> IntoIterator for AvlTreeSet<T> {
     type Item = T;
     type IntoIter = IntoIter<T>;
     fn into_iter(self) -> Self::IntoIter {

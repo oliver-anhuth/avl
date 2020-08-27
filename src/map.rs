@@ -1,3 +1,5 @@
+//! An ordered map implemented with an AVL tree.
+
 #![allow(dead_code)]
 
 use std::cmp::{self, Ordering};
@@ -6,7 +8,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ptr::NonNull;
 
-/// An ordered map implemented with a nearly balanced binary search tree.
+/// An ordered map implemented with an AVL tree.
 ///
 /// ```
 /// use avl::AvlTreeMap;
@@ -18,7 +20,7 @@ use std::ptr::NonNull;
 /// map.remove(&1);
 /// assert!(map.get(&1).is_none());
 /// ```
-pub struct Map<K, V> {
+pub struct AvlTreeMap<K, V> {
     root: Link<K, V>,
     num_nodes: usize,
 }
@@ -84,7 +86,7 @@ struct NodeEater<K, V> {
     last: Link<K, V>,
 }
 
-impl<K: Ord, V> Map<K, V> {
+impl<K: Ord, V> AvlTreeMap<K, V> {
     /// Creates an empty map.
     /// No memory is allocated until the first item is inserted.
     pub fn new() -> Self {
@@ -229,7 +231,7 @@ impl<K: Ord, V> Map<K, V> {
     }
 }
 
-impl<K, V> Map<K, V> {
+impl<K, V> AvlTreeMap<K, V> {
     /// Returns true if the map contains no elements.
     pub fn is_empty(&self) -> bool {
         self.root.is_none()
@@ -293,7 +295,7 @@ impl<K, V> Map<K, V> {
     }
 }
 
-impl<K: Ord, V> Map<K, V> {
+impl<K: Ord, V> AvlTreeMap<K, V> {
     fn find(&self, key: &K) -> Link<K, V> {
         let mut current = self.root;
         while let Some(node_ptr) = current {
@@ -329,7 +331,7 @@ impl<K: Ord, V> Map<K, V> {
     }
 }
 
-impl<K, V> Map<K, V> {
+impl<K, V> AvlTreeMap<K, V> {
     fn find_min(&self) -> Link<K, V> {
         match self.root {
             None => None,
@@ -682,20 +684,20 @@ impl<K, V> Map<K, V> {
     }
 }
 
-impl<K, V> Drop for Map<K, V> {
+impl<K, V> Drop for AvlTreeMap<K, V> {
     fn drop(&mut self) {
         self.clear();
     }
 }
 
-impl<K: Ord, V> Default for Map<K, V> {
+impl<K: Ord, V> Default for AvlTreeMap<K, V> {
     /// Creates an empty map.
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<K, V> fmt::Debug for Map<K, V>
+impl<K, V> fmt::Debug for AvlTreeMap<K, V>
 where
     K: fmt::Debug,
     V: fmt::Debug,
@@ -705,7 +707,7 @@ where
     }
 }
 
-impl<'a, K, V> IntoIterator for &'a Map<K, V> {
+impl<'a, K, V> IntoIterator for &'a AvlTreeMap<K, V> {
     type Item = (&'a K, &'a V);
     type IntoIter = Iter<'a, K, V>;
     fn into_iter(self) -> Self::IntoIter {
@@ -713,7 +715,7 @@ impl<'a, K, V> IntoIterator for &'a Map<K, V> {
     }
 }
 
-impl<'a, K, V> IntoIterator for &'a mut Map<K, V> {
+impl<'a, K, V> IntoIterator for &'a mut AvlTreeMap<K, V> {
     type Item = (&'a K, &'a mut V);
     type IntoIter = IterMut<'a, K, V>;
     fn into_iter(self) -> Self::IntoIter {
@@ -721,7 +723,7 @@ impl<'a, K, V> IntoIterator for &'a mut Map<K, V> {
     }
 }
 
-impl<K, V> IntoIterator for Map<K, V> {
+impl<K, V> IntoIterator for AvlTreeMap<K, V> {
     type Item = (K, V);
     type IntoIter = IntoIter<K, V>;
     fn into_iter(self) -> Self::IntoIter {
@@ -1077,6 +1079,7 @@ impl<K, V> IntoIter<K, V>
 where
     K: fmt::Debug,
 {
+    #[doc(hidden)] // This is just for the set implementation
     pub fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Safe to access elements in remaining range, no mutable references have been created yet
         let keys = Keys {
@@ -1120,7 +1123,7 @@ impl<K, V> DoubleEndedIterator for IntoIter<K, V> {
 }
 
 impl<K, V> NodeEater<K, V> {
-    fn new(mut map: Map<K, V>) -> Self {
+    fn new(mut map: AvlTreeMap<K, V>) -> Self {
         let node_eater = Self {
             first: map.find_min(),
             last: map.find_max(),
@@ -1247,7 +1250,7 @@ impl<K, V> NodeEater<K, V> {
     }
 
     fn postorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
-        Map::traverse(self.first, |_| {}, |_| {}, f);
+        AvlTreeMap::traverse(self.first, |_| {}, |_| {}, f);
     }
 }
 
