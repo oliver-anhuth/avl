@@ -1,3 +1,5 @@
+use std::ops::Bound;
+
 use super::{AvlTreeMap, AvlTreeSet};
 use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
 
@@ -482,6 +484,74 @@ fn test_map_iter() {
     map_into_iter.next();
     map_into_iter.next_back();
     assert_eq!(format!("{:?}", map_into_iter), "[]");
+}
+
+#[test]
+fn test_map_range_iter() {
+    use rand::{rngs::StdRng, Rng, SeedableRng};
+
+    let mut rng = StdRng::seed_from_u64(0);
+    let mut values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
+
+    let mut map = AvlTreeMap::new();
+    for value in &values {
+        map.insert(*value, value.wrapping_add(42));
+    }
+
+    values.sort();
+    values.dedup();
+
+    let start_idx = (N / 4) as usize;
+    let end_idx = (N - N / 4) as usize;
+
+    let mut range = map.range(values[start_idx]..values[end_idx]);
+    for value in &values[start_idx..end_idx] {
+        let kv = range.next();
+        assert!(kv.is_some());
+        let (&key, &mapped) = kv.unwrap();
+        assert_eq!(key, *value);
+        assert_eq!(mapped, value.wrapping_add(42));
+    }
+    assert!(range.next().is_none());
+
+    let mut range = map.range((
+        Bound::Excluded(values[start_idx]),
+        Bound::Included(values[end_idx]),
+    ));
+    for value in &values[start_idx + 1..=end_idx] {
+        let kv = range.next();
+        assert!(kv.is_some());
+        let (&key, &mapped) = kv.unwrap();
+        assert_eq!(key, *value);
+        assert_eq!(mapped, value.wrapping_add(42));
+    }
+    assert!(range.next().is_none());
+
+    let mut range = map.range(values[end_idx]..values[start_idx]);
+    assert!(range.next().is_none());
+
+    let mut range = map.range(values[start_idx]..=values[start_idx]);
+    let kv = range.next();
+    assert!(kv.is_some());
+    let (&key, &mapped) = kv.unwrap();
+    assert_eq!(key, values[start_idx]);
+    assert_eq!(mapped, values[start_idx].wrapping_add(42));
+    assert!(range.next().is_none());
+
+    let mut range = map.range(values[start_idx]..values[start_idx]);
+    assert!(range.next().is_none());
+
+    let mut range = map.range((
+        Bound::Excluded(values[start_idx]),
+        Bound::Included(values[start_idx]),
+    ));
+    assert!(range.next().is_none());
+
+    let mut range = map.range((
+        Bound::Excluded(values[start_idx]),
+        Bound::Excluded(values[start_idx + 1]),
+    ));
+    assert!(range.next().is_none());
 }
 
 #[test]

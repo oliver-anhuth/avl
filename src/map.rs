@@ -50,6 +50,11 @@ pub struct Iter<'a, K, V> {
     node_iter: NodeIter<'a, K, V>,
 }
 
+/// An iterator over a range of entries of a map.
+pub struct Range<'a, K, V> {
+    node_iter: NodeIter<'a, K, V>,
+}
+
 /// An iterator over the keys of a map.
 pub struct Keys<'a, K, V> {
     node_iter: NodeIter<'a, K, V>,
@@ -65,7 +70,7 @@ pub struct IterMut<'a, K, V> {
     node_iter: NodeIter<'a, K, V>,
 }
 
-/// An iterator over the values of a map.
+/// A mutable iterator over the values of a map.
 pub struct ValuesMut<'a, K, V> {
     node_iter: NodeIter<'a, K, V>,
 }
@@ -184,22 +189,36 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         }
     }
 
-    fn range<R: RangeBounds<K>>(&self, range: R) -> Iter<'_, K, V> {
+    /// Gets an iterator over a sub-range of elements in the map, in order by key.
+    pub fn range<R: RangeBounds<K>>(&self, range: R) -> Range<'_, K, V> {
         let mut first = match range.start_bound() {
             Bound::Unbounded => self.find_min(),
             Bound::Included(key) => self.find_start_bound_included(key),
             Bound::Excluded(key) => self.find_start_bound_excluded(key),
         };
-        let mut last = match range.end_bound() {
-            Bound::Unbounded => self.find_max(),
-            Bound::Included(key) => self.find_end_bound_included(key),
-            Bound::Excluded(key) => self.find_end_bound_excluded(key),
+
+        let mut last = None;
+        if first.is_some() {
+            last = match range.end_bound() {
+                Bound::Unbounded => self.find_max(),
+                Bound::Included(key) => self.find_end_bound_included(key),
+                Bound::Excluded(key) => self.find_end_bound_excluded(key),
+            }
         };
-        if first.is_none() || last.is_none() {
+
+        let is_valid_range = match (first, last) {
+            (None, _) | (_, None) => false,
+            (Some(first_ptr), Some(last_ptr)) => unsafe {
+                first_ptr.as_ref().key <= last_ptr.as_ref().key
+            },
+        };
+
+        if !is_valid_range {
             first = None;
             last = None;
         }
-        Iter {
+
+        Range {
             node_iter: unsafe { NodeIter::new(first, last) },
         }
     }
@@ -251,14 +270,6 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
             assert_eq!(num_nodes, self.num_nodes);
         }
     }
-}
-
-#[test]
-fn test_range_iter() {
-    let map: AvlTreeMap<i32, i32> = (vec![10i32, 5, 20, 7].into_iter())
-        .zip(vec![10i32, 5, 20, 7].into_iter())
-        .collect();
-    println!("{:?}", map.range(..));
 }
 
 impl<K, V> AvlTreeMap<K, V> {
@@ -1026,6 +1037,57 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
 }
 
 impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        match self.node_iter.pop_last() {
+            None => None,
+            Some(node_ptr) => unsafe {
+                let key: &'a K = &(*node_ptr.as_ptr()).key;
+                let value: &'a V = &(*node_ptr.as_ptr()).value;
+                Some((key, value))
+            },
+        }
+    }
+}
+
+impl<K, V> Clone for Range<'_, K, V> {
+    fn clone(&self) -> Self {
+        Self {
+            node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
+        }
+    }
+}
+
+impl<K, V> fmt::Debug for Range<'_, K, V>
+where
+    K: fmt::Debug,
+    V: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[")?;
+        let mut sep = "";
+        for (key, value) in self.clone() {
+            write!(f, "{}({:?}, {:?})", sep, key, value)?;
+            sep = ", ";
+        }
+        write!(f, "]")
+    }
+}
+
+impl<'a, K, V> Iterator for Range<'a, K, V> {
+    type Item = (&'a K, &'a V);
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.node_iter.pop_first() {
+            None => None,
+            Some(node_ptr) => unsafe {
+                let key: &'a K = &(*node_ptr.as_ptr()).key;
+                let value: &'a V = &(*node_ptr.as_ptr()).value;
+                Some((key, value))
+            },
+        }
+    }
+}
+
+impl<'a, K, V> DoubleEndedIterator for Range<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         match self.node_iter.pop_last() {
             None => None,
