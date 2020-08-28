@@ -70,6 +70,11 @@ pub struct IterMut<'a, K, V> {
     node_iter: NodeIter<'a, K, V>,
 }
 
+/// A mutable iterator over a range of the entries of a map.
+pub struct RangeMut<'a, K, V> {
+    node_iter: NodeIter<'a, K, V>,
+}
+
 /// A mutable iterator over the values of a map.
 pub struct ValuesMut<'a, K, V> {
     node_iter: NodeIter<'a, K, V>,
@@ -189,36 +194,18 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         }
     }
 
-    /// Gets an iterator over a sub-range of elements in the map, in order by key.
+    /// Gets an iterator over a range of elements in the map, in order by key.
     pub fn range<R: RangeBounds<K>>(&self, range: R) -> Range<'_, K, V> {
-        let mut first = match range.start_bound() {
-            Bound::Unbounded => self.find_min(),
-            Bound::Included(key) => self.find_start_bound_included(key),
-            Bound::Excluded(key) => self.find_start_bound_excluded(key),
-        };
-
-        let mut last = None;
-        if first.is_some() {
-            last = match range.end_bound() {
-                Bound::Unbounded => self.find_max(),
-                Bound::Included(key) => self.find_end_bound_included(key),
-                Bound::Excluded(key) => self.find_end_bound_excluded(key),
-            }
-        };
-
-        let is_valid_range = match (first, last) {
-            (None, _) | (_, None) => false,
-            (Some(first_ptr), Some(last_ptr)) => unsafe {
-                first_ptr.as_ref().key <= last_ptr.as_ref().key
-            },
-        };
-
-        if !is_valid_range {
-            first = None;
-            last = None;
-        }
-
+        let (first, last) = self.find_range(range);
         Range {
+            node_iter: unsafe { NodeIter::new(first, last) },
+        }
+    }
+
+    /// Gets an iterator over a range of elements in the map, in order by key.
+    pub fn range_mut<R: RangeBounds<K>>(&mut self, range: R) -> RangeMut<'_, K, V> {
+        let (first, last) = self.find_range(range);
+        RangeMut {
             node_iter: unsafe { NodeIter::new(first, last) },
         }
     }
@@ -369,6 +356,37 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
             }
         }
         Ok((parent, link_ptr))
+    }
+
+    fn find_range<R: RangeBounds<K>>(&self, range: R) -> (Link<K, V>, Link<K, V>) {
+        let mut first = match range.start_bound() {
+            Bound::Unbounded => self.find_min(),
+            Bound::Included(key) => self.find_start_bound_included(key),
+            Bound::Excluded(key) => self.find_start_bound_excluded(key),
+        };
+
+        let mut last = None;
+        if first.is_some() {
+            last = match range.end_bound() {
+                Bound::Unbounded => self.find_max(),
+                Bound::Included(key) => self.find_end_bound_included(key),
+                Bound::Excluded(key) => self.find_end_bound_excluded(key),
+            }
+        };
+
+        let is_valid_range = match (first, last) {
+            (None, _) | (_, None) => false,
+            (Some(first_ptr), Some(last_ptr)) => unsafe {
+                first_ptr.as_ref().key <= last_ptr.as_ref().key
+            },
+        };
+
+        if !is_valid_range {
+            first = None;
+            last = None;
+        }
+
+        (first, last)
     }
 
     fn find_start_bound_included(&self, key: &K) -> Link<K, V> {
@@ -1208,6 +1226,7 @@ impl<'a, K, V> DoubleEndedIterator for Values<'a, K, V> {
         }
     }
 }
+
 impl<K, V> fmt::Debug for IterMut<'_, K, V>
 where
     K: fmt::Debug,
@@ -1243,6 +1262,53 @@ impl<'a, K, V> Iterator for IterMut<'a, K, V> {
 }
 
 impl<'a, K, V> DoubleEndedIterator for IterMut<'a, K, V> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        match self.node_iter.pop_last() {
+            None => None,
+            Some(node_ptr) => unsafe {
+                let key: &'a K = &(*node_ptr.as_ptr()).key;
+                let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
+                Some((key, value))
+            },
+        }
+    }
+}
+
+impl<K, V> fmt::Debug for RangeMut<'_, K, V>
+where
+    K: fmt::Debug,
+    V: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[")?;
+        let mut sep = "";
+        // Safe to access elements in remaining range, no mutable references have been created yet
+        let iter = Iter {
+            node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
+        };
+        for (key, value) in iter {
+            write!(f, "{}({:?}, {:?})", sep, key, value)?;
+            sep = ", ";
+        }
+        write!(f, "]")
+    }
+}
+
+impl<'a, K, V> Iterator for RangeMut<'a, K, V> {
+    type Item = (&'a K, &'a mut V);
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.node_iter.pop_first() {
+            None => None,
+            Some(node_ptr) => unsafe {
+                let key: &'a K = &(*node_ptr.as_ptr()).key;
+                let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
+                Some((key, value))
+            },
+        }
+    }
+}
+
+impl<'a, K, V> DoubleEndedIterator for RangeMut<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         match self.node_iter.pop_last() {
             None => None,

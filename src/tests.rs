@@ -514,14 +514,14 @@ fn test_map_range_iter() {
     }
     assert!(range.next().is_none());
 
-    let mut range = map.range((
+    let mut range = map.range_mut((
         Bound::Excluded(values[start_idx]),
         Bound::Included(values[end_idx]),
     ));
     for value in &values[start_idx + 1..=end_idx] {
         let kv = range.next();
         assert!(kv.is_some());
-        let (&key, &mapped) = kv.unwrap();
+        let (&key, &mut mapped) = kv.unwrap();
         assert_eq!(key, *value);
         assert_eq!(mapped, value.wrapping_add(42));
     }
