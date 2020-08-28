@@ -7,6 +7,7 @@ use std::fmt;
 use std::iter::FromIterator;
 use std::marker::PhantomData;
 use std::mem;
+use std::ops::{Bound, RangeBounds};
 use std::ptr::NonNull;
 
 /// An ordered map implemented with an AVL tree.
@@ -183,6 +184,26 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         }
     }
 
+    fn range<R: RangeBounds<K>>(&self, range: R) -> Iter<'_, K, V> {
+        let mut first = match range.start_bound() {
+            Bound::Unbounded => self.find_min(),
+            Bound::Included(key) => self.find_start_bound_included(key),
+            Bound::Excluded(key) => self.find_start_bound_excluded(key),
+        };
+        let mut last = match range.end_bound() {
+            Bound::Unbounded => self.find_max(),
+            Bound::Included(key) => self.find_end_bound_included(key),
+            Bound::Excluded(key) => self.find_end_bound_excluded(key),
+        };
+        if first.is_none() || last.is_none() {
+            first = None;
+            last = None;
+        }
+        Iter {
+            node_iter: unsafe { NodeIter::new(first, last) },
+        }
+    }
+
     /// Asserts that the internal tree structure is consistent.
     #[cfg(any(test, feature = "consist^ency_check"))]
     pub fn check_consistency(&self) {
@@ -230,6 +251,14 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
             assert_eq!(num_nodes, self.num_nodes);
         }
     }
+}
+
+#[test]
+fn test_range_iter() {
+    let map: AvlTreeMap<i32, i32> = (vec![10i32, 5, 20, 7].into_iter())
+        .zip(vec![10i32, 5, 20, 7].into_iter())
+        .collect();
+    println!("{:?}", map.range(..));
 }
 
 impl<K, V> AvlTreeMap<K, V> {
@@ -329,6 +358,132 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
             }
         }
         Ok((parent, link_ptr))
+    }
+
+    fn find_start_bound_included(&self, key: &K) -> Link<K, V> {
+        let mut first = None;
+        if let Some(mut node_ptr) = self.root {
+            loop {
+                node_ptr = unsafe {
+                    match key.cmp(&node_ptr.as_ref().key) {
+                        Ordering::Less => match node_ptr.as_ref().left {
+                            None => break,
+                            Some(left_ptr) => left_ptr,
+                        },
+                        Ordering::Greater => match node_ptr.as_ref().right {
+                            None => break,
+                            Some(right_ptr) => right_ptr,
+                        },
+                        Ordering::Equal => break,
+                    }
+                }
+            }
+            first = Some(node_ptr);
+            while let Some(node_ptr) = first {
+                unsafe {
+                    if *key <= node_ptr.as_ref().key {
+                        break;
+                    } else {
+                        first = node_ptr.as_ref().parent;
+                    }
+                }
+            }
+        }
+        first
+    }
+
+    fn find_start_bound_excluded(&self, key: &K) -> Link<K, V> {
+        let mut first = None;
+        if let Some(mut node_ptr) = self.root {
+            loop {
+                node_ptr = unsafe {
+                    match key.cmp(&node_ptr.as_ref().key) {
+                        Ordering::Less => match node_ptr.as_ref().left {
+                            None => break,
+                            Some(left_ptr) => left_ptr,
+                        },
+                        Ordering::Greater | Ordering::Equal => match node_ptr.as_ref().right {
+                            None => break,
+                            Some(right_ptr) => right_ptr,
+                        },
+                    }
+                }
+            }
+            first = Some(node_ptr);
+            while let Some(node_ptr) = first {
+                unsafe {
+                    if *key < node_ptr.as_ref().key {
+                        break;
+                    } else {
+                        first = node_ptr.as_ref().parent;
+                    }
+                }
+            }
+        }
+        first
+    }
+
+    fn find_end_bound_included(&self, key: &K) -> Link<K, V> {
+        let mut first = None;
+        if let Some(mut node_ptr) = self.root {
+            loop {
+                node_ptr = unsafe {
+                    match key.cmp(&node_ptr.as_ref().key) {
+                        Ordering::Less => match node_ptr.as_ref().left {
+                            None => break,
+                            Some(left_ptr) => left_ptr,
+                        },
+                        Ordering::Greater => match node_ptr.as_ref().right {
+                            None => break,
+                            Some(right_ptr) => right_ptr,
+                        },
+                        Ordering::Equal => break,
+                    }
+                }
+            }
+            first = Some(node_ptr);
+            while let Some(node_ptr) = first {
+                unsafe {
+                    if *key >= node_ptr.as_ref().key {
+                        break;
+                    } else {
+                        first = node_ptr.as_ref().parent;
+                    }
+                }
+            }
+        }
+        first
+    }
+
+    fn find_end_bound_excluded(&self, key: &K) -> Link<K, V> {
+        let mut first = None;
+        if let Some(mut node_ptr) = self.root {
+            loop {
+                node_ptr = unsafe {
+                    match key.cmp(&node_ptr.as_ref().key) {
+                        Ordering::Less | Ordering::Equal => match node_ptr.as_ref().left {
+                            None => break,
+                            Some(left_ptr) => left_ptr,
+                        },
+                        Ordering::Greater => match node_ptr.as_ref().right {
+                            None => break,
+                            Some(right_ptr) => right_ptr,
+                        },
+                    }
+                }
+            }
+            first = Some(node_ptr);
+            while let Some(node_ptr) = first {
+                unsafe {
+                    if *key > node_ptr.as_ref().key {
+                        break;
+                    } else {
+                        first = node_ptr.as_ref().parent;
+                    }
+                }
+            }
+        }
+        first
     }
 }
 
