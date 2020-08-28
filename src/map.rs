@@ -205,7 +205,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     }
 
     /// Asserts that the internal tree structure is consistent.
-    #[cfg(any(test, feature = "consist^ency_check"))]
+    #[cfg(any(test, feature = "consistency_check"))]
     pub fn check_consistency(&self) {
         unsafe {
             // Check root link
