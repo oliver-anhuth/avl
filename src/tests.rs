@@ -624,11 +624,19 @@ fn test_set_iter() {
 
     // Test debug formatting
     let mut set: AvlTreeSet<i32> = (1..4).collect();
-    set.insert(1);
-    set.insert(2);
-    set.insert(3);
-    assert_eq!(format!("{:?}", set.iter()), "[1, 2, 3]");
-    assert_eq!(format!("{:?}", set.into_iter()), "[1, 2, 3]");
+    for i in 1..10 {
+        set.insert(i);
+    }
+    assert_eq!(format!("{:?}", set.iter()), "[1, 2, 3, 4, 5, 6, 7, 8, 9]");
+    assert_eq!(
+        format!("{:?}", set.clone().into_iter()),
+        "[1, 2, 3, 4, 5, 6, 7, 8, 9]"
+    );
+    assert_eq!(format!("{:?}", set.range(3..8)), "[3, 4, 5, 6, 7]");
+    assert_eq!(format!("{:?}", set.range(3..=8)), "[3, 4, 5, 6, 7, 8]");
+    assert_eq!(format!("{:?}", set.range(3..=3)), "[3]");
+    assert_eq!(format!("{:?}", set.range(3..3)), "[]");
+    assert_eq!(format!("{:?}", set.range(4..=3)), "[]");
 }
 
 #[test]

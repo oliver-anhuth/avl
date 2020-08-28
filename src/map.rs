@@ -1049,6 +1049,19 @@ impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
     }
 }
 
+impl<'a, K, V> Range<'a, K, V>
+where
+    K: fmt::Debug,
+{
+    #[doc(hidden)] // This is just for the set implementation
+    pub fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let keys = Keys {
+            node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
+        };
+        write!(f, "{:?}", keys)
+    }
+}
+
 impl<K, V> Clone for Range<'_, K, V> {
     fn clone(&self) -> Self {
         Self {

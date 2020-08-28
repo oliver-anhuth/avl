@@ -2,8 +2,9 @@
 
 use std::fmt;
 use std::iter::FromIterator;
+use std::ops::RangeBounds;
 
-use super::map::{AvlTreeMap, IntoIter as MapIntoIter, Keys as MapIter};
+use super::map::{AvlTreeMap, IntoIter as MapIntoIter, Keys as MapIter, Range as MapRange};
 
 /// An ordered set implemented with an AVL tree.
 ///
@@ -26,6 +27,12 @@ pub struct AvlTreeSet<T> {
 #[derive(Clone)]
 pub struct Iter<'a, T> {
     map_iter: MapIter<'a, T, ()>,
+}
+
+/// An iterator over a range of values of a set.
+#[derive(Clone)]
+pub struct Range<'a, T> {
+    map_range: MapRange<'a, T, ()>,
 }
 
 /// An owning iterator over the values of a set.
@@ -72,6 +79,13 @@ impl<T: Ord> AvlTreeSet<T> {
     /// Moves all values from other into self, leaving other empty.
     pub fn append(&mut self, other: &mut Self) {
         self.map.append(&mut other.map);
+    }
+
+    /// Gets an iterator over a sub-range of values in the set in sorted order.
+    pub fn range<R: RangeBounds<T>>(&self, range: R) -> Range<'_, T> {
+        Range {
+            map_range: self.map.range(range),
+        }
     }
 
     /// Asserts that the internal tree structure is consistent.
@@ -162,6 +176,25 @@ impl<'a, T> Iterator for Iter<'a, T> {
 impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.map_iter.next_back()
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for Range<'_, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.map_range.fmt_keys(f)
+    }
+}
+
+impl<'a, T> Iterator for Range<'a, T> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.map_range.next().map(|(k, _)| k)
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for Range<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.map_range.next_back().map(|(k, _)| k)
     }
 }
 
