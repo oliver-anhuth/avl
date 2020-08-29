@@ -518,27 +518,19 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
 
 impl<K, V> AvlTreeMap<K, V> {
     fn find_min(&self) -> Link<K, V> {
-        match self.root {
-            None => None,
-            Some(mut min_ptr) => {
-                while let Some(left_ptr) = unsafe { min_ptr.as_ref().left } {
-                    min_ptr = left_ptr;
-                }
-                Some(min_ptr)
-            }
+        let mut min_ptr = self.root?;
+        while let Some(left_ptr) = unsafe { min_ptr.as_ref().left } {
+            min_ptr = left_ptr;
         }
+        Some(min_ptr)
     }
 
     fn find_max(&self) -> Link<K, V> {
-        match self.root {
-            None => None,
-            Some(mut max_ptr) => {
-                while let Some(right_ptr) = unsafe { max_ptr.as_ref().right } {
-                    max_ptr = right_ptr;
-                }
-                Some(max_ptr)
-            }
+        let mut max_ptr = self.root?;
+        while let Some(right_ptr) = unsafe { max_ptr.as_ref().right } {
+            max_ptr = right_ptr;
         }
+        Some(max_ptr)
     }
 
     fn unlink_node(&mut self, node_ptr: NodePtr<K, V>) {
@@ -1043,26 +1035,22 @@ where
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_iter.pop_first() {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let key: &'a K = &(*node_ptr.as_ptr()).key;
-                let value: &'a V = &(*node_ptr.as_ptr()).value;
-                Some((key, value))
-            },
+        let node_ptr = self.node_iter.pop_first()?;
+        unsafe {
+            let key: &'a K = &(*node_ptr.as_ptr()).key;
+            let value: &'a V = &(*node_ptr.as_ptr()).value;
+            Some((key, value))
         }
     }
 }
 
 impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        match self.node_iter.pop_last() {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let key: &'a K = &(*node_ptr.as_ptr()).key;
-                let value: &'a V = &(*node_ptr.as_ptr()).value;
-                Some((key, value))
-            },
+        let node_ptr = self.node_iter.pop_last()?;
+        unsafe {
+            let key: &'a K = &(*node_ptr.as_ptr()).key;
+            let value: &'a V = &(*node_ptr.as_ptr()).value;
+            Some((key, value))
         }
     }
 }
@@ -1107,26 +1095,22 @@ where
 impl<'a, K, V> Iterator for Range<'a, K, V> {
     type Item = (&'a K, &'a V);
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_iter.pop_first() {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let key: &'a K = &(*node_ptr.as_ptr()).key;
-                let value: &'a V = &(*node_ptr.as_ptr()).value;
-                Some((key, value))
-            },
+        let node_ptr = self.node_iter.pop_first()?;
+        unsafe {
+            let key: &'a K = &(*node_ptr.as_ptr()).key;
+            let value: &'a V = &(*node_ptr.as_ptr()).value;
+            Some((key, value))
         }
     }
 }
 
 impl<'a, K, V> DoubleEndedIterator for Range<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        match self.node_iter.pop_last() {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let key: &'a K = &(*node_ptr.as_ptr()).key;
-                let value: &'a V = &(*node_ptr.as_ptr()).value;
-                Some((key, value))
-            },
+        let node_ptr = self.node_iter.pop_last()?;
+        unsafe {
+            let key: &'a K = &(*node_ptr.as_ptr()).key;
+            let value: &'a V = &(*node_ptr.as_ptr()).value;
+            Some((key, value))
         }
     }
 }
@@ -1157,24 +1141,20 @@ where
 impl<'a, K, V> Iterator for Keys<'a, K, V> {
     type Item = &'a K;
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_iter.pop_first() {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let key: &'a K = &(*node_ptr.as_ptr()).key;
-                Some(key)
-            },
+        let node_ptr = self.node_iter.pop_first()?;
+        unsafe {
+            let key: &'a K = &(*node_ptr.as_ptr()).key;
+            Some(key)
         }
     }
 }
 
 impl<'a, K, V> DoubleEndedIterator for Keys<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        match self.node_iter.pop_last() {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let key: &'a K = &(*node_ptr.as_ptr()).key;
-                Some(key)
-            },
+        let node_ptr = self.node_iter.pop_last()?;
+        unsafe {
+            let key: &'a K = &(*node_ptr.as_ptr()).key;
+            Some(key)
         }
     }
 }
@@ -1205,24 +1185,20 @@ where
 impl<'a, K, V> Iterator for Values<'a, K, V> {
     type Item = &'a V;
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_iter.pop_first() {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let value: &'a V = &(*node_ptr.as_ptr()).value;
-                Some(value)
-            },
+        let node_ptr = self.node_iter.pop_first()?;
+        unsafe {
+            let value: &'a V = &(*node_ptr.as_ptr()).value;
+            Some(value)
         }
     }
 }
 
 impl<'a, K, V> DoubleEndedIterator for Values<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        match self.node_iter.pop_last() {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let value: &'a V = &(*node_ptr.as_ptr()).value;
-                Some(value)
-            },
+        let node_ptr = self.node_iter.pop_last()?;
+        unsafe {
+            let value: &'a V = &(*node_ptr.as_ptr()).value;
+            Some(value)
         }
     }
 }
@@ -1250,26 +1226,22 @@ where
 impl<'a, K, V> Iterator for IterMut<'a, K, V> {
     type Item = (&'a K, &'a mut V);
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_iter.pop_first() {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let key: &'a K = &(*node_ptr.as_ptr()).key;
-                let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
-                Some((key, value))
-            },
+        let node_ptr = self.node_iter.pop_first()?;
+        unsafe {
+            let key: &'a K = &(*node_ptr.as_ptr()).key;
+            let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
+            Some((key, value))
         }
     }
 }
 
 impl<'a, K, V> DoubleEndedIterator for IterMut<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        match self.node_iter.pop_last() {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let key: &'a K = &(*node_ptr.as_ptr()).key;
-                let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
-                Some((key, value))
-            },
+        let node_ptr = self.node_iter.pop_last()?;
+        unsafe {
+            let key: &'a K = &(*node_ptr.as_ptr()).key;
+            let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
+            Some((key, value))
         }
     }
 }
@@ -1297,26 +1269,22 @@ where
 impl<'a, K, V> Iterator for RangeMut<'a, K, V> {
     type Item = (&'a K, &'a mut V);
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_iter.pop_first() {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let key: &'a K = &(*node_ptr.as_ptr()).key;
-                let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
-                Some((key, value))
-            },
+        let node_ptr = self.node_iter.pop_first()?;
+        unsafe {
+            let key: &'a K = &(*node_ptr.as_ptr()).key;
+            let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
+            Some((key, value))
         }
     }
 }
 
 impl<'a, K, V> DoubleEndedIterator for RangeMut<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        match self.node_iter.pop_last() {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let key: &'a K = &(*node_ptr.as_ptr()).key;
-                let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
-                Some((key, value))
-            },
+        let node_ptr = self.node_iter.pop_last()?;
+        unsafe {
+            let key: &'a K = &(*node_ptr.as_ptr()).key;
+            let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
+            Some((key, value))
         }
     }
 }
@@ -1343,24 +1311,20 @@ where
 impl<'a, K, V> Iterator for ValuesMut<'a, K, V> {
     type Item = &'a mut V;
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node_iter.pop_first() {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
-                Some(value)
-            },
+        let node_ptr = self.node_iter.pop_first()?;
+        unsafe {
+            let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
+            Some(value)
         }
     }
 }
 
 impl<'a, K, V> DoubleEndedIterator for ValuesMut<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        match self.node_iter.pop_last() {
-            None => None,
-            Some(node_ptr) => unsafe {
-                let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
-                Some(value)
-            },
+        let node_ptr = self.node_iter.pop_last()?;
+        unsafe {
+            let value: &'a mut V = &mut (*node_ptr.as_ptr()).value;
+            Some(value)
         }
     }
 }
