@@ -202,7 +202,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         }
     }
 
-    /// Gets an iterator over a range of elements in the map, in order by key.
+    /// Gets a mutable iterator over a range of elements in the map, in order by key.
     pub fn range_mut<R: RangeBounds<K>>(&mut self, range: R) -> RangeMut<'_, K, V> {
         let (first, last) = self.find_range(range);
         RangeMut {
