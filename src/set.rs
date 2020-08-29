@@ -160,6 +160,32 @@ impl<T> IntoIterator for AvlTreeSet<T> {
     }
 }
 
+impl<T> Extend<T> for AvlTreeSet<T>
+where
+    T: Ord + Copy,
+{
+    fn extend<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = T>,
+    {
+        iter.into_iter().for_each(move |value| {
+            self.insert(value);
+        });
+    }
+}
+
+impl<'a, T> Extend<&'a T> for AvlTreeSet<T>
+where
+    T: Ord + Copy,
+{
+    fn extend<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = &'a T>,
+    {
+        self.extend(iter.into_iter().map(|&value| value));
+    }
+}
+
 impl<T: fmt::Debug> fmt::Debug for Iter<'_, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self.map_iter)

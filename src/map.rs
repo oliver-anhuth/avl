@@ -989,6 +989,33 @@ impl<K, V> IntoIterator for AvlTreeMap<K, V> {
     }
 }
 
+impl<K, V> Extend<(K, V)> for AvlTreeMap<K, V>
+where
+    K: Ord,
+{
+    fn extend<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = (K, V)>,
+    {
+        iter.into_iter().for_each(move |(key, value)| {
+            self.insert(key, value);
+        });
+    }
+}
+
+impl<'a, K, V> Extend<(&'a K, &'a V)> for AvlTreeMap<K, V>
+where
+    K: Ord + Copy,
+    V: Copy,
+{
+    fn extend<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = (&'a K, &'a V)>,
+    {
+        self.extend(iter.into_iter().map(|(&key, &value)| (key, value)));
+    }
+}
+
 impl<K, V> Node<K, V> {
     fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
         let boxed = Box::new(Node {
