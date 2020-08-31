@@ -7,7 +7,7 @@ use std::fmt;
 use std::iter::FromIterator;
 use std::marker::PhantomData;
 use std::mem;
-use std::ops::{Bound, RangeBounds};
+use std::ops::{Bound, Index, RangeBounds};
 use std::ptr::NonNull;
 
 /// An ordered map implemented with an AVL tree.
@@ -965,6 +965,16 @@ impl<K: Clone, V: Clone> Clone for AvlTreeMap<K, V> {
         }
 
         other
+    }
+}
+
+impl<K: Ord, V> Index<&K> for AvlTreeMap<K, V> {
+    type Output = V;
+    /// Returns a reference to the value for the given key.
+    /// # Panics
+    /// Panics if the key is not present in the map.
+    fn index(&self, key: &K) -> &V {
+        self.get(key).expect("no entry found for key")
     }
 }
 

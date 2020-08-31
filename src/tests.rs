@@ -23,6 +23,7 @@ fn test_new() {
         format!("{:?}", map_i8),
         String::from(r#"{0: "foo", 1: "bar", 2: "baz"}"#)
     );
+    assert_eq!(map_i8[&1], "bar");
 
     let map_string: AvlTreeMap<String, String> = AvlTreeMap::default();
     assert!(map_string.is_empty());
@@ -242,6 +243,16 @@ fn test_get() {
         let got = map.get_key_value(value);
         assert_eq!(got, Some((value, &(value.wrapping_add(2)))));
     }
+}
+
+#[test]
+#[should_panic(expected = "no entry found for key")]
+fn test_index_panic() {
+    let mut map = AvlTreeMap::new();
+    map.insert(1, "foo");
+    map.insert(42, "bar");
+    map.insert(512, "baz");
+    map[&13];
 }
 
 #[test]
