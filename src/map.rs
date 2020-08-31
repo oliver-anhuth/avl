@@ -52,6 +52,7 @@ enum Entry<'a, K: 'a, V: 'a> {
 struct VacantEntry<'a, K: 'a, V: 'a> {
     parent: Link<K, V>,
     insert_pos: LinkPtr<K, V>,
+    key: K,
     marker: PhantomData<(&'a K, &'a mut V)>,
 }
 
@@ -191,37 +192,6 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         }
     }
 
-    /// Gets the map entry of given key for in-place manipulation.
-    fn entry(&mut self, key: &K) -> Entry<'_, K, V> {
-        let mut parent: Link<K, V> = None;
-        let mut link_ptr: LinkPtr<K, V> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
-        unsafe {
-            while let Some(mut node_ptr) = link_ptr.as_ref() {
-                if *key == node_ptr.as_ref().key {
-                    // Found key in the map -> return occupied entry
-                    return Entry::Occupied(OccupiedEntry {
-                        node_ptr: node_ptr,
-                        marker: PhantomData,
-                    });
-                } else {
-                    parent = *link_ptr.as_ref();
-                    if *key < node_ptr.as_ref().key {
-                        link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().left);
-                    } else {
-                        link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().right);
-                    }
-                }
-            }
-        }
-
-        // Key is not in the map -> return vacant entry
-        Entry::Vacant(VacantEntry {
-            parent,
-            insert_pos: link_ptr,
-            marker: PhantomData,
-        })
-    }
-
     /// Removes a key from the map.
     /// Returns the value at the key if the key was previously in the map.
     pub fn remove(&mut self, key: &K) -> Option<V> {
@@ -250,6 +220,38 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         for (key, value) in to_append {
             self.insert(key, value);
         }
+    }
+
+    /// Gets the map entry of given key for in-place manipulation.
+    fn entry(&mut self, key: K) -> Entry<'_, K, V> {
+        let mut parent: Link<K, V> = None;
+        let mut link_ptr: LinkPtr<K, V> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
+        unsafe {
+            while let Some(mut node_ptr) = link_ptr.as_ref() {
+                if key == node_ptr.as_ref().key {
+                    // Found key in the map -> return occupied entry
+                    return Entry::Occupied(OccupiedEntry {
+                        node_ptr: node_ptr,
+                        marker: PhantomData,
+                    });
+                } else {
+                    parent = *link_ptr.as_ref();
+                    if key < node_ptr.as_ref().key {
+                        link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().left);
+                    } else {
+                        link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().right);
+                    }
+                }
+            }
+        }
+
+        // Key is not in the map -> return vacant entry
+        Entry::Vacant(VacantEntry {
+            parent,
+            insert_pos: link_ptr,
+            key,
+            marker: PhantomData,
+        })
     }
 
     /// Gets an iterator over a range of elements in the map, in order by key.
@@ -1134,6 +1136,25 @@ impl<K, V> Node<K, V> {
     }
 }
 
+impl<'a, K, V> Entry<'a, K, V> {
+    fn key(&self) -> &K {
+        match *self {
+            Entry::Vacant(ref v) => v.key(),
+            Entry::Occupied(ref o) => o.key(),
+        }
+    }
+}
+
+impl<'a, K, V> VacantEntry<'a, K, V> {
+    pub fn key(&self) -> &K {
+        &self.key
+    }
+
+    pub fn into_key(self) -> K {
+        self.key
+    }
+}
+
 impl<'a, K, V> OccupiedEntry<'a, K, V> {
     pub fn key(&self) -> &K {
         unsafe { &self.node_ptr.as_ref().key }
@@ -1732,5 +1753,29 @@ impl<K, V> Drop for NodeEater<K, V> {
         self.postorder(|node_ptr| unsafe {
             Node::destroy(node_ptr);
         });
+    }
+}
+
+#[test]
+fn test_entry() {
+    let mut map: AvlTreeMap<_, _> = (0..100)
+        .step_by(10)
+        .zip(["foo", "bar"].iter().cycle())
+        .collect();
+
+    let occupied = map.entry(40);
+    assert_eq!(occupied.key(), &40);
+    if let Entry::Occupied(occupied_entry) = occupied {
+        assert_eq!(occupied_entry.key(), &40);
+    } else {
+        panic!("should be occupied");
+    }
+
+    let vacant = map.entry(42);
+    assert_eq!(vacant.key(), &42);
+    if let Entry::Vacant(vacant_entry) = vacant {
+        assert_eq!(vacant_entry.key(), &42);
+    } else {
+        panic!("should be vacant");
     }
 }
