@@ -1097,6 +1097,12 @@ impl<K, V> Node<K, V> {
     }
 }
 
+impl<'a, K, V> OccupiedEntry<'a, K, V> {
+    pub fn key(&self) -> &K {
+        unsafe { &self.node_ptr.as_ref().key }
+    }
+}
+
 impl<K, V> Clone for Iter<'_, K, V> {
     fn clone(&self) -> Self {
         Self {
