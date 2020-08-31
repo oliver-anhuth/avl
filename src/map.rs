@@ -42,8 +42,24 @@ type NodePtr<K, V> = NonNull<Node<K, V>>;
 type Link<K, V> = Option<NodePtr<K, V>>;
 type LinkPtr<K, V> = NonNull<Link<K, V>>;
 
-/// Insert position is parent + link to modify.
-type InsertPos<K, V> = (Link<K, V>, LinkPtr<K, V>);
+/// A view into a single map entry, which may either be vacant or occupied.
+enum Entry<'a, K: 'a, V: 'a> {
+    Vacant(VacantEntry<'a, K, V>),
+    Occupied(OccupiedEntry<'a, K, V>),
+}
+
+/// A view into a vacant map entry. It is part of the Entry enum.
+struct VacantEntry<'a, K: 'a, V: 'a> {
+    parent: Link<K, V>,
+    insert_pos: LinkPtr<K, V>,
+    marker: PhantomData<(&'a K, &'a mut V)>,
+}
+
+/// A view into an occupied map entry. It is part of the Entry enum.
+struct OccupiedEntry<'a, K: 'a, V: 'a> {
+    node: NodePtr<K, V>,
+    marker: PhantomData<(&'a K, &'a mut V)>,
+}
 
 /// An iterator over the entries of a map.
 pub struct Iter<'a, K, V> {
@@ -144,24 +160,53 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     /// Returns None if the key is not in the map.
     /// Updates the value if the key is already in the map and returns the old value.
     pub fn insert(&mut self, key: K, mut value: V) -> Option<V> {
-        match self.find_insert_pos(&key) {
-            Ok((parent, mut link_ptr)) => {
+        match self.entry(&key) {
+            Entry::Vacant(mut vacant_entry) => {
                 unsafe {
-                    *link_ptr.as_mut() = Some(Node::create(parent, key, value));
+                    *vacant_entry.insert_pos.as_mut() =
+                        Some(Node::create(vacant_entry.parent, key, value));
                 }
-                self.num_nodes += 1;
-                if let Some(parent_ptr) = parent {
+                if let Some(parent_ptr) = vacant_entry.parent {
                     self.rebalance_once(parent_ptr);
                 }
+                self.num_nodes += 1;
                 None
             }
-            Err(mut node_ptr) => {
+            Entry::Occupied(mut occupied_entry) => {
                 unsafe {
-                    mem::swap(&mut node_ptr.as_mut().value, &mut value);
+                    mem::swap(&mut occupied_entry.node.as_mut().value, &mut value);
                 }
                 Some(value)
             }
         }
+    }
+
+    /// Gets the map entry of given key for in-place manipulation.
+    fn entry(&mut self, key: &K) -> Entry<'_, K, V> {
+        let mut parent: Link<K, V> = None;
+        let mut link_ptr: LinkPtr<K, V> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
+        unsafe {
+            while let Some(mut node_ptr) = link_ptr.as_ref() {
+                if *key == node_ptr.as_ref().key {
+                    return Entry::Occupied(OccupiedEntry {
+                        node: node_ptr,
+                        marker: PhantomData,
+                    });
+                } else {
+                    parent = *link_ptr.as_ref();
+                    if *key < node_ptr.as_ref().key {
+                        link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().left);
+                    } else {
+                        link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().right);
+                    }
+                }
+            }
+        }
+        Entry::Vacant(VacantEntry {
+            parent,
+            insert_pos: link_ptr,
+            marker: PhantomData,
+        })
     }
 
     /// Removes a key from the map.
@@ -336,26 +381,6 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
             }
         }
         current
-    }
-
-    fn find_insert_pos(&mut self, key: &K) -> Result<InsertPos<K, V>, NodePtr<K, V>> {
-        let mut parent: Link<K, V> = None;
-        let mut link_ptr: LinkPtr<K, V> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
-        unsafe {
-            while let Some(mut node_ptr) = link_ptr.as_ref() {
-                if *key == node_ptr.as_ref().key {
-                    return Err(node_ptr);
-                } else {
-                    parent = *link_ptr.as_ref();
-                    if *key < node_ptr.as_ref().key {
-                        link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().left);
-                    } else {
-                        link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().right);
-                    }
-                }
-            }
-        }
-        Ok((parent, link_ptr))
     }
 
     fn find_range<R: RangeBounds<K>>(&self, range: R) -> (Link<K, V>, Link<K, V>) {
