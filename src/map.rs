@@ -231,7 +231,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
                 if key == node_ptr.as_ref().key {
                     // Found key in the map -> return occupied entry
                     return Entry::Occupied(OccupiedEntry {
-                        node_ptr: node_ptr,
+                        node_ptr,
                         marker: PhantomData,
                     });
                 } else {
@@ -406,7 +406,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
             while let Some(mut node_ptr) = link_ptr.as_ref() {
                 if *key == node_ptr.as_ref().key {
                     // Found key in the map -> return occupied insert position
-                    return InsertPos::Occupied { node_ptr: node_ptr };
+                    return InsertPos::Occupied { node_ptr };
                 } else {
                     parent = *link_ptr.as_ref();
                     if *key < node_ptr.as_ref().key {
