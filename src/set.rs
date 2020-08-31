@@ -177,12 +177,13 @@ where
 impl<'a, T> Extend<&'a T> for AvlTreeSet<T>
 where
     T: Ord + Copy,
+    T: 'a,
 {
     fn extend<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = &'a T>,
     {
-        self.extend(iter.into_iter().map(|&value| value));
+        self.extend(iter.into_iter().copied());
     }
 }
 
