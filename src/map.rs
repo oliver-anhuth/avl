@@ -50,6 +50,7 @@ enum Entry<'a, K: 'a, V: 'a> {
 
 /// A view into a vacant map entry. It is part of the Entry enum.
 struct VacantEntry<'a, K: 'a, V: 'a> {
+    map: &'a mut AvlTreeMap<K, V>,
     parent: Link<K, V>,
     insert_pos: LinkPtr<K, V>,
     key: K,
@@ -58,6 +59,7 @@ struct VacantEntry<'a, K: 'a, V: 'a> {
 
 /// A view into an occupied map entry. It is part of the Entry enum.
 struct OccupiedEntry<'a, K: 'a, V: 'a> {
+    map: &'a mut AvlTreeMap<K, V>,
     node_ptr: NodePtr<K, V>,
     marker: PhantomData<(&'a K, &'a mut V)>,
 }
@@ -231,6 +233,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
                 if key == node_ptr.as_ref().key {
                     // Found key in the map -> return occupied entry
                     return Entry::Occupied(OccupiedEntry {
+                        map: self,
                         node_ptr,
                         marker: PhantomData,
                     });
@@ -247,6 +250,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
 
         // Key is not in the map -> return vacant entry
         Entry::Vacant(VacantEntry {
+            map: self,
             parent,
             insert_pos: link_ptr,
             key,
@@ -595,6 +599,24 @@ impl<K, V> AvlTreeMap<K, V> {
             max_ptr = right_ptr;
         }
         Some(max_ptr)
+    }
+
+    fn insert_at_pos(
+        &mut self,
+        parent: Link<K, V>,
+        mut insert_pos: LinkPtr<K, V>,
+        key: K,
+        value: V,
+    ) -> &mut V {
+        let node_ptr = Node::create(parent, key, value);
+        unsafe {
+            *insert_pos.as_mut() = Some(node_ptr);
+        }
+        if let Some(parent_ptr) = parent {
+            self.rebalance_once(parent_ptr);
+        }
+        self.num_nodes += 1;
+        unsafe { &mut (*node_ptr.as_ptr()).value }
     }
 
     fn unlink_node(&mut self, node_ptr: NodePtr<K, V>) {
@@ -1152,6 +1174,11 @@ impl<'a, K, V> VacantEntry<'a, K, V> {
 
     pub fn into_key(self) -> K {
         self.key
+    }
+
+    pub fn insert(self, value: V) -> &'a mut V {
+        self.map
+            .insert_at_pos(self.parent, self.insert_pos, self.key, value)
     }
 }
 
@@ -1760,7 +1787,7 @@ impl<K, V> Drop for NodeEater<K, V> {
 fn test_entry() {
     let mut map: AvlTreeMap<_, _> = (0..100)
         .step_by(10)
-        .zip(["foo", "bar"].iter().cycle())
+        .zip(["foo", "bar"].iter().cloned().cycle())
         .collect();
 
     let occupied = map.entry(40);
@@ -1775,7 +1802,10 @@ fn test_entry() {
     assert_eq!(vacant.key(), &42);
     if let Entry::Vacant(vacant_entry) = vacant {
         assert_eq!(vacant_entry.key(), &42);
+        let value_ref = vacant_entry.insert("baz");
+        *value_ref = "boom";
     } else {
         panic!("should be vacant");
     }
+    assert_eq!(map[&42], "boom");
 }
