@@ -18,7 +18,7 @@ use super::map::{AvlTreeMap, IntoIter as MapIntoIter, Keys as MapIter, Range as 
 /// set.remove(&1);
 /// assert!(set.get(&1).is_none());
 /// ```
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AvlTreeSet<T> {
     map: AvlTreeMap<T, ()>,
 }
