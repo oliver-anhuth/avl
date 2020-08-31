@@ -57,7 +57,7 @@ struct VacantEntry<'a, K: 'a, V: 'a> {
 
 /// A view into an occupied map entry. It is part of the Entry enum.
 struct OccupiedEntry<'a, K: 'a, V: 'a> {
-    node: NodePtr<K, V>,
+    node_ptr: NodePtr<K, V>,
     marker: PhantomData<(&'a K, &'a mut V)>,
 }
 
@@ -161,21 +161,18 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     /// Updates the value if the key is already in the map and returns the old value.
     pub fn insert(&mut self, key: K, mut value: V) -> Option<V> {
         match self.entry(&key) {
-            Entry::Vacant(mut vacant_entry) => {
+            Entry::Vacant(mut vac) => {
                 unsafe {
-                    *vacant_entry.insert_pos.as_mut() =
-                        Some(Node::create(vacant_entry.parent, key, value));
+                    *vac.insert_pos.as_mut() = Some(Node::create(vac.parent, key, value));
                 }
-                if let Some(parent_ptr) = vacant_entry.parent {
+                if let Some(parent_ptr) = vac.parent {
                     self.rebalance_once(parent_ptr);
                 }
                 self.num_nodes += 1;
                 None
             }
-            Entry::Occupied(mut occupied_entry) => {
-                unsafe {
-                    mem::swap(&mut occupied_entry.node.as_mut().value, &mut value);
-                }
+            Entry::Occupied(mut occ) => {
+                mem::swap(unsafe { &mut occ.node_ptr.as_mut().value }, &mut value);
                 Some(value)
             }
         }
@@ -188,8 +185,9 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         unsafe {
             while let Some(mut node_ptr) = link_ptr.as_ref() {
                 if *key == node_ptr.as_ref().key {
+                    // Found key in the map -> return occupied entry
                     return Entry::Occupied(OccupiedEntry {
-                        node: node_ptr,
+                        node_ptr: node_ptr,
                         marker: PhantomData,
                     });
                 } else {
@@ -202,6 +200,8 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
                 }
             }
         }
+
+        // Key is not in the map -> return vacant entry
         Entry::Vacant(VacantEntry {
             parent,
             insert_pos: link_ptr,
@@ -887,21 +887,9 @@ impl<K, V> AvlTreeMap<K, V> {
     }
 }
 
-impl<K, V> Drop for AvlTreeMap<K, V> {
-    fn drop(&mut self) {
-        self.clear();
-    }
-}
-
-impl<K: Ord, V> Default for AvlTreeMap<K, V> {
-    /// Creates an empty map.
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<K: Clone, V: Clone> Clone for AvlTreeMap<K, V> {
-    fn clone(&self) -> Self {
+impl<K: Clone, V: Clone> AvlTreeMap<K, V> {
+    /// Make a clone of the tree structure.
+    fn clone_tree(&self) -> Self {
         let mut other = Self {
             root: None,
             num_nodes: self.num_nodes,
@@ -965,6 +953,25 @@ impl<K: Clone, V: Clone> Clone for AvlTreeMap<K, V> {
         }
 
         other
+    }
+}
+
+impl<K, V> Drop for AvlTreeMap<K, V> {
+    fn drop(&mut self) {
+        self.clear();
+    }
+}
+
+impl<K: Ord, V> Default for AvlTreeMap<K, V> {
+    /// Creates an empty map.
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<K: Clone, V: Clone> Clone for AvlTreeMap<K, V> {
+    fn clone(&self) -> Self {
+        self.clone_tree()
     }
 }
 
