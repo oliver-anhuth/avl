@@ -43,13 +43,13 @@ type Link<K, V> = Option<NodePtr<K, V>>;
 type LinkPtr<K, V> = NonNull<Link<K, V>>;
 
 /// A view into a single map entry, which may either be vacant or occupied.
-enum Entry<'a, K: 'a, V: 'a> {
+pub enum Entry<'a, K: 'a, V: 'a> {
     Vacant(VacantEntry<'a, K, V>),
     Occupied(OccupiedEntry<'a, K, V>),
 }
 
 /// A view into a vacant map entry. It is part of the Entry enum.
-struct VacantEntry<'a, K: 'a, V: 'a> {
+pub struct VacantEntry<'a, K: 'a, V: 'a> {
     map: &'a mut AvlTreeMap<K, V>,
     parent: Link<K, V>,
     insert_pos: LinkPtr<K, V>,
@@ -58,7 +58,7 @@ struct VacantEntry<'a, K: 'a, V: 'a> {
 }
 
 /// A view into an occupied map entry. It is part of the Entry enum.
-struct OccupiedEntry<'a, K: 'a, V: 'a> {
+pub struct OccupiedEntry<'a, K: 'a, V: 'a> {
     map: &'a mut AvlTreeMap<K, V>,
     node_ptr: NodePtr<K, V>,
     marker: PhantomData<(&'a K, &'a mut V)>,
@@ -210,7 +210,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     }
 
     /// Gets the map entry of given key for in-place manipulation.
-    fn entry(&mut self, key: K) -> Entry<'_, K, V> {
+    pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
         let mut parent: Link<K, V> = None;
         let mut link_ptr: LinkPtr<K, V> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
         unsafe {
@@ -1177,7 +1177,7 @@ impl<'a, K, V> Entry<'a, K, V> {
         }
     }
 
-    /// Inserts value into the map if entry is vacant.
+    /// Inserts value into the map if the entry is vacant.
     pub fn or_insert(self, value: V) -> &'a mut V {
         match self {
             Entry::Occupied(o) => o.into_mut(),
@@ -1185,7 +1185,7 @@ impl<'a, K, V> Entry<'a, K, V> {
         }
     }
 
-    /// Calls provided closure and inserts result value into the map if entry is vacant.
+    /// Calls provided closure and inserts result value into the map if the entry is vacant.
     pub fn or_insert_with<F: FnOnce() -> V>(self, create_value: F) -> &'a mut V {
         match self {
             Entry::Occupied(o) => o.into_mut(),
@@ -1195,7 +1195,7 @@ impl<'a, K, V> Entry<'a, K, V> {
 }
 
 impl<'a, K, V: Default> Entry<'a, K, V> {
-    /// Inserts default value into the map if entry is vacant.
+    /// Inserts default value into the map if the entry is vacant.
     pub fn or_default(self) -> &'a mut V {
         match self {
             Entry::Occupied(o) => o.into_mut(),
@@ -1224,7 +1224,7 @@ impl<'a, K, V> VacantEntry<'a, K, V> {
         self.key
     }
 
-    /// Inserts the value into the map for the entry.
+    /// Inserts the value into the map for the entry. Returns a mutable reference to the value.
     pub fn insert(self, value: V) -> &'a mut V {
         unsafe {
             self.map
@@ -1880,36 +1880,4 @@ impl<K, V> Drop for NodeEater<K, V> {
             Node::destroy(node_ptr);
         });
     }
-}
-
-#[test]
-fn test_entry() {
-    let mut map: AvlTreeMap<_, _> = (0..100)
-        .step_by(10)
-        .zip(["foo", "bar"].iter().cloned().cycle())
-        .collect();
-
-    let occupied = map.entry(40);
-    assert_eq!(
-        format!("{:?}", occupied),
-        r#"Entry(OccupiedEntry { key: 40, value: "foo" })"#
-    );
-    assert_eq!(occupied.key(), &40);
-    if let Entry::Occupied(occupied_entry) = occupied {
-        assert_eq!(occupied_entry.key(), &40);
-    } else {
-        panic!("should be occupied");
-    }
-
-    let vacant = map.entry(42);
-    assert_eq!(format!("{:?}", vacant), r"Entry(OccupiedEntry { key: 42 })");
-    assert_eq!(vacant.key(), &42);
-    if let Entry::Vacant(vacant_entry) = vacant {
-        assert_eq!(vacant_entry.key(), &42);
-        let value_ref = vacant_entry.insert("baz");
-        *value_ref = "boom";
-    } else {
-        panic!("should be vacant");
-    }
-    assert_eq!(map[&42], "boom");
 }

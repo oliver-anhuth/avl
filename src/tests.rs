@@ -1,6 +1,8 @@
 use std::ops::Bound;
 
+use super::map::Entry;
 use super::{AvlTreeMap, AvlTreeSet};
+
 use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
 
 const N: i32 = 1_000;
@@ -326,6 +328,47 @@ fn test_append() {
     for value in values {
         assert_eq!(map_keys.next(), Some(&value));
     }
+}
+
+#[test]
+fn test_map_entry() {
+    let mut map: AvlTreeMap<_, _> = (0..100)
+        .step_by(10)
+        .zip(["foo", "bar"].iter().cloned().cycle())
+        .collect();
+
+    let occupied = map.entry(40);
+    assert_eq!(
+        format!("{:?}", occupied),
+        r#"Entry(OccupiedEntry { key: 40, value: "foo" })"#
+    );
+    assert_eq!(occupied.key(), &40);
+    if let Entry::Occupied(occupied_entry) = occupied {
+        assert_eq!(occupied_entry.key(), &40);
+    } else {
+        panic!("should be occupied");
+    }
+
+    let vacant = map.entry(42);
+    assert_eq!(format!("{:?}", vacant), r"Entry(OccupiedEntry { key: 42 })");
+    assert_eq!(vacant.key(), &42);
+    if let Entry::Vacant(vacant_entry) = vacant {
+        assert_eq!(vacant_entry.key(), &42);
+        let value_ref = vacant_entry.insert("baz");
+        *value_ref = "boom";
+    } else {
+        panic!("should be vacant");
+    }
+    assert_eq!(map[&42], "boom");
+
+    map.entry(50).or_insert("baz");
+    assert_eq!(map.get(&50), Some(&"bar"));
+    if let Entry::Occupied(o) = map.entry(50) {
+        o.remove();
+    }
+    assert_eq!(map.get(&50), None);
+    map.entry(50).or_insert("baz");
+    assert_eq!(map.get(&50), Some(&"baz"));
 }
 
 #[test]
