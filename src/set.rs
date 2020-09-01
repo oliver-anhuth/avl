@@ -82,6 +82,11 @@ impl<T: Ord> AvlTreeSet<T> {
     }
 
     /// Gets an iterator over a sub-range of values in the set in sorted order.
+    ///
+    /// # Panics
+    ///
+    /// Panics if range `start > end`.
+    /// Panics if range `start == end` and both bounds are `Excluded`.
     pub fn range<R: RangeBounds<T>>(&self, range: R) -> Range<'_, T> {
         Range {
             map_range: self.map.range(range),

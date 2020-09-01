@@ -290,6 +290,11 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     ///
     /// The key may be any borrowed form of the map's key type, but the ordering
     /// on the borrowed form *must* match the ordering on the key type.
+    ///
+    /// # Panics
+    ///
+    /// Panics if range `start > end`.
+    /// Panics if range `start == end` and both bounds are `Excluded`.
     pub fn range<Q, R>(&self, range: R) -> Range<'_, K, V>
     where
         K: Borrow<Q>,
@@ -306,6 +311,11 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     ///
     /// The key may be any borrowed form of the map's key type, but the ordering
     /// on the borrowed form *must* match the ordering on the key type.
+    ///
+    /// # Panics
+    ///
+    /// Panics if range `start > end`.
+    /// Panics if range `start == end` and both bounds are `Excluded`.
     pub fn range_mut<Q, R>(&mut self, range: R) -> RangeMut<'_, K, V>
     where
         K: Borrow<Q>,
@@ -484,6 +494,25 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         R: RangeBounds<Q>,
         Q: Ord + ?Sized,
     {
+        match (range.start_bound(), range.end_bound()) {
+            (Bound::Excluded(s), Bound::Excluded(e)) if s == e => {
+                panic!("range start and end are equal and excluded")
+            }
+            (Bound::Included(s), Bound::Included(e)) if s > e => {
+                panic!("range start is greater than range end")
+            }
+            (Bound::Excluded(s), Bound::Included(e)) if s > e => {
+                panic!("range start is greater than range end")
+            }
+            (Bound::Included(s), Bound::Excluded(e)) if s > e => {
+                panic!("range start is greater than range end")
+            }
+            (Bound::Excluded(s), Bound::Excluded(e)) if s > e => {
+                panic!("range start is greater than range end")
+            }
+            _ => {}
+        };
+
         let mut first = match range.start_bound() {
             Bound::Unbounded => self.find_min(),
             Bound::Included(key) => self.find_start_bound_included(key),

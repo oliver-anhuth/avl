@@ -579,9 +579,6 @@ fn test_map_range_iter() {
     }
     assert!(range.next().is_none());
 
-    let mut range = map.range(values[end_idx]..values[start_idx]);
-    assert!(range.next().is_none());
-
     let mut range = map.range(values[start_idx]..=values[start_idx]);
     let kv = range.next();
     assert!(kv.is_some());
@@ -688,7 +685,6 @@ fn test_set_iter() {
     assert_eq!(format!("{:?}", set.range(3..=8)), "[3, 4, 5, 6, 7, 8]");
     assert_eq!(format!("{:?}", set.range(3..=3)), "[3]");
     assert_eq!(format!("{:?}", set.range(3..3)), "[]");
-    assert_eq!(format!("{:?}", set.range(4..=3)), "[]");
 }
 
 #[test]
