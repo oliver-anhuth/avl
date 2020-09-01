@@ -615,8 +615,7 @@ impl<K, V> AvlTreeMap<K, V> {
         debug_assert!(self.num_nodes > 0);
         self.num_nodes -= 1;
         self.unlink_node(node_ptr);
-        let kv = Node::destroy(node_ptr);
-        kv
+        Node::destroy(node_ptr)
     }
 
     fn unlink_node(&mut self, node_ptr: NodePtr<K, V>) {
