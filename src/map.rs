@@ -173,17 +173,15 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     /// Inserts a key-value pair into the map.
     /// Returns None if the key is not in the map.
     /// Updates the value if the key is already in the map and returns the old value.
-    pub fn insert(&mut self, key: K, mut value: V) -> Option<V> {
+    pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         match self.find_insert_pos(&key) {
-            InsertPos::Vacant { parent, link_ptr } => {
+            InsertPos::Vacant { parent, link_ptr } => unsafe {
                 self.insert_entry_at_vacant_pos(parent, link_ptr, key, value);
                 None
-            }
-            InsertPos::Occupied { node_ptr } => {
-                let mut node_ptr = node_ptr;
-                mem::swap(unsafe { &mut node_ptr.as_mut().value }, &mut value);
-                Some(value)
-            }
+            },
+            InsertPos::Occupied { node_ptr } => unsafe {
+                Some(self.insert_value_at_occupied_pos(node_ptr, value))
+            },
         }
     }
 
@@ -197,15 +195,9 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     /// Returns the stored key and value if the key was previously in the map.
     pub fn remove_entry(&mut self, key: &K) -> Option<(K, V)> {
         // Find node to-be-removed
-        if let Some(node_ptr) = self.find(key) {
-            debug_assert!(self.num_nodes > 0);
-            self.num_nodes -= 1;
-            self.unlink_node(node_ptr);
-            let kv = unsafe { Node::destroy(node_ptr) };
-            debug_assert!(self.find(key).is_none());
-            return Some(kv);
-        }
-        None
+        let node_ptr = self.find(key)?;
+        let kv = unsafe { self.remove_entry_at_occupied_pos(node_ptr) };
+        Some(kv)
     }
 
     /// Moves all elements from other into self, leaving other empty.
@@ -594,7 +586,7 @@ impl<K, V> AvlTreeMap<K, V> {
         Some(max_ptr)
     }
 
-    fn insert_entry_at_vacant_pos(
+    unsafe fn insert_entry_at_vacant_pos(
         &mut self,
         parent: Link<K, V>,
         mut insert_pos: LinkPtr<K, V>,
@@ -602,14 +594,29 @@ impl<K, V> AvlTreeMap<K, V> {
         value: V,
     ) -> &mut V {
         let node_ptr = Node::create(parent, key, value);
-        unsafe {
-            *insert_pos.as_mut() = Some(node_ptr);
-        }
+        *insert_pos.as_mut() = Some(node_ptr);
         if let Some(parent_ptr) = parent {
             self.rebalance_once(parent_ptr);
         }
         self.num_nodes += 1;
-        unsafe { &mut (*node_ptr.as_ptr()).value }
+        &mut (*node_ptr.as_ptr()).value
+    }
+
+    unsafe fn insert_value_at_occupied_pos(
+        &mut self,
+        mut node_ptr: NodePtr<K, V>,
+        mut value: V,
+    ) -> V {
+        mem::swap(&mut node_ptr.as_mut().value, &mut value);
+        value
+    }
+
+    unsafe fn remove_entry_at_occupied_pos(&mut self, node_ptr: NodePtr<K, V>) -> (K, V) {
+        debug_assert!(self.num_nodes > 0);
+        self.num_nodes -= 1;
+        self.unlink_node(node_ptr);
+        let kv = Node::destroy(node_ptr);
+        kv
     }
 
     fn unlink_node(&mut self, node_ptr: NodePtr<K, V>) {
@@ -1170,14 +1177,40 @@ impl<'a, K, V> VacantEntry<'a, K, V> {
     }
 
     pub fn insert(self, value: V) -> &'a mut V {
-        self.map
-            .insert_entry_at_vacant_pos(self.parent, self.insert_pos, self.key, value)
+        unsafe {
+            self.map
+                .insert_entry_at_vacant_pos(self.parent, self.insert_pos, self.key, value)
+        }
     }
 }
 
 impl<'a, K, V> OccupiedEntry<'a, K, V> {
     pub fn key(&self) -> &K {
         unsafe { &self.node_ptr.as_ref().key }
+    }
+
+    pub fn get(&self) -> &V {
+        unsafe { &self.node_ptr.as_ref().value }
+    }
+
+    pub fn get_mut(&mut self) -> &mut V {
+        unsafe { &mut (*self.node_ptr.as_ptr()).value }
+    }
+
+    pub fn into_mut(self) -> &'a mut V {
+        unsafe { &mut (*self.node_ptr.as_ptr()).value }
+    }
+
+    pub fn insert(&mut self, value: V) -> V {
+        unsafe { self.map.insert_value_at_occupied_pos(self.node_ptr, value) }
+    }
+
+    pub fn remove(self) -> V {
+        unsafe { self.map.remove_entry_at_occupied_pos(self.node_ptr).1 }
+    }
+
+    pub fn remove_entry(self) -> (K, V) {
+        unsafe { self.map.remove_entry_at_occupied_pos(self.node_ptr) }
     }
 }
 
