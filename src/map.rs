@@ -2,6 +2,7 @@
 
 #![allow(dead_code)]
 
+use std::borrow::Borrow;
 use std::cmp::{self, Ordering};
 use std::fmt;
 use std::iter::FromIterator;
@@ -139,7 +140,14 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     }
 
     /// Returns a reference to the value corresponding to the key.
-    pub fn get(&self, key: &K) -> Option<&V> {
+    ///
+    /// The key may be any borrowed form of the map's key type, but the ordering
+    /// on the borrowed form *must* match the ordering on the key type.
+    pub fn get<Q>(&self, key: &Q) -> Option<&V>
+    where
+        K: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         if let Some(node_ptr) = self.find(key) {
             return Some(&unsafe { &*node_ptr.as_ptr() }.value);
         }
@@ -147,7 +155,14 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     }
 
     /// Returns a mutable reference to the value corresponding to the key.
-    pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
+    ///
+    /// The key may be any borrowed form of the map's key type, but the ordering
+    /// on the borrowed form *must* match the ordering on the key type.
+    pub fn get_mut<Q>(&mut self, key: &Q) -> Option<&mut V>
+    where
+        K: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         if let Some(node_ptr) = self.find(key) {
             return Some(&mut unsafe { &mut *node_ptr.as_ptr() }.value);
         }
@@ -155,7 +170,14 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     }
 
     /// Returns references to the key-value pair corresponding to the key.
-    pub fn get_key_value(&self, key: &K) -> Option<(&K, &V)> {
+    ///
+    /// The key may be any borrowed form of the map's key type, but the ordering
+    /// on the borrowed form *must* match the ordering on the key type.
+    pub fn get_key_value<Q>(&self, key: &Q) -> Option<(&K, &V)>
+    where
+        K: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         if let Some(node_ptr) = self.find(key) {
             return Some((
                 &unsafe { &*node_ptr.as_ptr() }.key,
@@ -166,7 +188,14 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     }
 
     /// Returns true if the key is in the map, else false.
-    pub fn contains_key(&self, key: &K) -> bool {
+    ///
+    /// The key may be any borrowed form of the map's key type, but the ordering
+    /// on the borrowed form *must* match the ordering on the key type.
+    pub fn contains_key<Q>(&self, key: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         self.find(key).is_some()
     }
 
@@ -187,13 +216,27 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
 
     /// Removes a key from the map.
     /// Returns the value at the key if the key was previously in the map.
-    pub fn remove(&mut self, key: &K) -> Option<V> {
+    ///
+    /// The key may be any borrowed form of the map's key type, but the ordering
+    /// on the borrowed form *must* match the ordering on the key type.
+    pub fn remove<Q>(&mut self, key: &Q) -> Option<V>
+    where
+        K: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         self.remove_entry(key).map(|(_, v)| v)
     }
 
     /// Removes a key from the map.
     /// Returns the stored key and value if the key was previously in the map.
-    pub fn remove_entry(&mut self, key: &K) -> Option<(K, V)> {
+    ///
+    /// The key may be any borrowed form of the map's key type, but the ordering
+    /// on the borrowed form *must* match the ordering on the key type.
+    pub fn remove_entry<Q>(&mut self, key: &Q) -> Option<(K, V)>
+    where
+        K: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         // Find node to-be-removed
         let node_ptr = self.find(key)?;
         let kv = unsafe { self.remove_entry_at_occupied_pos(node_ptr) };
@@ -244,7 +287,15 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     }
 
     /// Gets an iterator over a range of elements in the map, in order by key.
-    pub fn range<R: RangeBounds<K>>(&self, range: R) -> Range<'_, K, V> {
+    ///
+    /// The key may be any borrowed form of the map's key type, but the ordering
+    /// on the borrowed form *must* match the ordering on the key type.
+    pub fn range<Q, R>(&self, range: R) -> Range<'_, K, V>
+    where
+        K: Borrow<Q>,
+        R: RangeBounds<Q>,
+        Q: Ord + ?Sized,
+    {
         let (first, last) = self.find_range(range);
         Range {
             node_iter: unsafe { NodeIter::new(first, last) },
@@ -252,7 +303,15 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     }
 
     /// Gets a mutable iterator over a range of elements in the map, in order by key.
-    pub fn range_mut<R: RangeBounds<K>>(&mut self, range: R) -> RangeMut<'_, K, V> {
+    ///
+    /// The key may be any borrowed form of the map's key type, but the ordering
+    /// on the borrowed form *must* match the ordering on the key type.
+    pub fn range_mut<Q, R>(&mut self, range: R) -> RangeMut<'_, K, V>
+    where
+        K: Borrow<Q>,
+        R: RangeBounds<Q>,
+        Q: Ord + ?Sized,
+    {
         let (first, last) = self.find_range(range);
         RangeMut {
             node_iter: unsafe { NodeIter::new(first, last) },
@@ -373,11 +432,15 @@ impl<K, V> AvlTreeMap<K, V> {
 }
 
 impl<K: Ord, V> AvlTreeMap<K, V> {
-    fn find(&self, key: &K) -> Link<K, V> {
+    fn find<Q>(&self, key: &Q) -> Link<K, V>
+    where
+        K: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         let mut current = self.root;
         while let Some(node_ptr) = current {
             current = unsafe {
-                match key.cmp(&node_ptr.as_ref().key) {
+                match key.cmp(node_ptr.as_ref().key.borrow()) {
                     Ordering::Equal => break,
                     Ordering::Less => node_ptr.as_ref().left,
                     Ordering::Greater => node_ptr.as_ref().right,
@@ -388,17 +451,21 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     }
 
     /// Finds insert position for given key.
-    fn find_insert_pos(&mut self, key: &K) -> InsertPos<K, V> {
+    fn find_insert_pos<Q>(&mut self, key: &Q) -> InsertPos<K, V>
+    where
+        K: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         let mut parent: Link<K, V> = None;
         let mut link_ptr: LinkPtr<K, V> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
         unsafe {
             while let Some(mut node_ptr) = link_ptr.as_ref() {
-                if *key == node_ptr.as_ref().key {
+                if key == node_ptr.as_ref().key.borrow() {
                     // Found key in the map -> return occupied insert position
                     return InsertPos::Occupied { node_ptr };
                 } else {
                     parent = *link_ptr.as_ref();
-                    if *key < node_ptr.as_ref().key {
+                    if key < node_ptr.as_ref().key.borrow() {
                         link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().left);
                     } else {
                         link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().right);
@@ -411,7 +478,12 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         InsertPos::Vacant { parent, link_ptr }
     }
 
-    fn find_range<R: RangeBounds<K>>(&self, range: R) -> (Link<K, V>, Link<K, V>) {
+    fn find_range<Q, R>(&self, range: R) -> (Link<K, V>, Link<K, V>)
+    where
+        K: Borrow<Q>,
+        R: RangeBounds<Q>,
+        Q: Ord + ?Sized,
+    {
         let mut first = match range.start_bound() {
             Bound::Unbounded => self.find_min(),
             Bound::Included(key) => self.find_start_bound_included(key),
@@ -442,12 +514,16 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         (first, last)
     }
 
-    fn find_start_bound_included(&self, key: &K) -> Link<K, V> {
+    fn find_start_bound_included<Q>(&self, key: &Q) -> Link<K, V>
+    where
+        K: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         let mut first = None;
         if let Some(mut node_ptr) = self.root {
             loop {
                 node_ptr = unsafe {
-                    match key.cmp(&node_ptr.as_ref().key) {
+                    match key.cmp(node_ptr.as_ref().key.borrow()) {
                         Ordering::Less => match node_ptr.as_ref().left {
                             None => break,
                             Some(left_ptr) => left_ptr,
@@ -463,7 +539,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
             first = Some(node_ptr);
             while let Some(node_ptr) = first {
                 unsafe {
-                    if *key <= node_ptr.as_ref().key {
+                    if key <= node_ptr.as_ref().key.borrow() {
                         break;
                     } else {
                         first = node_ptr.as_ref().parent;
@@ -474,12 +550,16 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         first
     }
 
-    fn find_start_bound_excluded(&self, key: &K) -> Link<K, V> {
+    fn find_start_bound_excluded<Q>(&self, key: &Q) -> Link<K, V>
+    where
+        K: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         let mut first = None;
         if let Some(mut node_ptr) = self.root {
             loop {
                 node_ptr = unsafe {
-                    match key.cmp(&node_ptr.as_ref().key) {
+                    match key.cmp(node_ptr.as_ref().key.borrow()) {
                         Ordering::Less => match node_ptr.as_ref().left {
                             None => break,
                             Some(left_ptr) => left_ptr,
@@ -494,7 +574,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
             first = Some(node_ptr);
             while let Some(node_ptr) = first {
                 unsafe {
-                    if *key < node_ptr.as_ref().key {
+                    if key < node_ptr.as_ref().key.borrow() {
                         break;
                     } else {
                         first = node_ptr.as_ref().parent;
@@ -505,12 +585,16 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         first
     }
 
-    fn find_end_bound_included(&self, key: &K) -> Link<K, V> {
+    fn find_end_bound_included<Q>(&self, key: &Q) -> Link<K, V>
+    where
+        K: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         let mut first = None;
         if let Some(mut node_ptr) = self.root {
             loop {
                 node_ptr = unsafe {
-                    match key.cmp(&node_ptr.as_ref().key) {
+                    match key.cmp(node_ptr.as_ref().key.borrow()) {
                         Ordering::Less => match node_ptr.as_ref().left {
                             None => break,
                             Some(left_ptr) => left_ptr,
@@ -526,7 +610,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
             first = Some(node_ptr);
             while let Some(node_ptr) = first {
                 unsafe {
-                    if *key >= node_ptr.as_ref().key {
+                    if key >= node_ptr.as_ref().key.borrow() {
                         break;
                     } else {
                         first = node_ptr.as_ref().parent;
@@ -537,12 +621,16 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         first
     }
 
-    fn find_end_bound_excluded(&self, key: &K) -> Link<K, V> {
+    fn find_end_bound_excluded<Q>(&self, key: &Q) -> Link<K, V>
+    where
+        K: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         let mut first = None;
         if let Some(mut node_ptr) = self.root {
             loop {
                 node_ptr = unsafe {
-                    match key.cmp(&node_ptr.as_ref().key) {
+                    match key.cmp(node_ptr.as_ref().key.borrow()) {
                         Ordering::Less | Ordering::Equal => match node_ptr.as_ref().left {
                             None => break,
                             Some(left_ptr) => left_ptr,
@@ -557,7 +645,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
             first = Some(node_ptr);
             while let Some(node_ptr) = first {
                 unsafe {
-                    if *key > node_ptr.as_ref().key {
+                    if key > node_ptr.as_ref().key.borrow() {
                         break;
                     } else {
                         first = node_ptr.as_ref().parent;
