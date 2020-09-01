@@ -176,14 +176,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
     pub fn insert(&mut self, key: K, mut value: V) -> Option<V> {
         match self.find_insert_pos(&key) {
             InsertPos::Vacant { parent, link_ptr } => {
-                let mut link_ptr = link_ptr;
-                unsafe {
-                    *link_ptr.as_mut() = Some(Node::create(parent, key, value));
-                }
-                if let Some(parent_ptr) = parent {
-                    self.rebalance_once(parent_ptr);
-                }
-                self.num_nodes += 1;
+                self.insert_entry_at_vacant_pos(parent, link_ptr, key, value);
                 None
             }
             InsertPos::Occupied { node_ptr } => {
@@ -601,7 +594,7 @@ impl<K, V> AvlTreeMap<K, V> {
         Some(max_ptr)
     }
 
-    fn insert_at_pos(
+    fn insert_entry_at_vacant_pos(
         &mut self,
         parent: Link<K, V>,
         mut insert_pos: LinkPtr<K, V>,
@@ -1178,7 +1171,7 @@ impl<'a, K, V> VacantEntry<'a, K, V> {
 
     pub fn insert(self, value: V) -> &'a mut V {
         self.map
-            .insert_at_pos(self.parent, self.insert_pos, self.key, value)
+            .insert_entry_at_vacant_pos(self.parent, self.insert_pos, self.key, value)
     }
 }
 
