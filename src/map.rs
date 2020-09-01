@@ -1158,6 +1158,7 @@ impl<K, V> Node<K, V> {
 }
 
 impl<'a, K, V> Entry<'a, K, V> {
+    /// Returns a reference to the key of the entry.
     pub fn key(&self) -> &K {
         match *self {
             Entry::Vacant(ref v) => v.key(),
@@ -1165,6 +1166,7 @@ impl<'a, K, V> Entry<'a, K, V> {
         }
     }
 
+    /// Provides in-place access to an occupied entry.
     pub fn and_modify<F: FnOnce(&mut V)>(self, f: F) -> Self {
         match self {
             Entry::Occupied(mut o) => {
@@ -1175,6 +1177,7 @@ impl<'a, K, V> Entry<'a, K, V> {
         }
     }
 
+    /// Inserts value into the map if entry is vacant.
     pub fn or_insert(self, value: V) -> &'a mut V {
         match self {
             Entry::Occupied(o) => o.into_mut(),
@@ -1182,6 +1185,7 @@ impl<'a, K, V> Entry<'a, K, V> {
         }
     }
 
+    /// Calls provided closure and inserts result value into the map if entry is vacant.
     pub fn or_insert_with<F: FnOnce() -> V>(self, create_value: F) -> &'a mut V {
         match self {
             Entry::Occupied(o) => o.into_mut(),
@@ -1191,6 +1195,7 @@ impl<'a, K, V> Entry<'a, K, V> {
 }
 
 impl<'a, K, V: Default> Entry<'a, K, V> {
+    /// Inserts default value into the map if entry is vacant.
     pub fn or_default(self) -> &'a mut V {
         match self {
             Entry::Occupied(o) => o.into_mut(),
@@ -1209,14 +1214,17 @@ impl<K: fmt::Debug + Ord, V: fmt::Debug> fmt::Debug for Entry<'_, K, V> {
 }
 
 impl<'a, K, V> VacantEntry<'a, K, V> {
+    /// Returns a reference to the key of the entry.
     pub fn key(&self) -> &K {
         &self.key
     }
 
+    /// Takes ownership of the key of the entry.
     pub fn into_key(self) -> K {
         self.key
     }
 
+    /// Inserts the value into the map for the entry.
     pub fn insert(self, value: V) -> &'a mut V {
         unsafe {
             self.map
@@ -1234,30 +1242,37 @@ impl<K: Ord + fmt::Debug, V: fmt::Debug> fmt::Debug for VacantEntry<'_, K, V> {
 }
 
 impl<'a, K, V> OccupiedEntry<'a, K, V> {
+    /// Returns a reference to the key of the entry.
     pub fn key(&self) -> &K {
         unsafe { &self.node_ptr.as_ref().key }
     }
 
+    /// Gets a reference to the value in the entry.
     pub fn get(&self) -> &V {
         unsafe { &self.node_ptr.as_ref().value }
     }
 
+    /// Gets a mutable reference to the value in the entry.
     pub fn get_mut(&mut self) -> &mut V {
         unsafe { &mut (*self.node_ptr.as_ptr()).value }
     }
 
+    /// Converts the entry into a mutable reference to its value.
     pub fn into_mut(self) -> &'a mut V {
         unsafe { &mut (*self.node_ptr.as_ptr()).value }
     }
 
+    /// Inserts the value into the map entry and returns its old value.
     pub fn insert(&mut self, value: V) -> V {
         unsafe { self.map.insert_value_at_occupied_pos(self.node_ptr, value) }
     }
 
+    /// Removes the entry from the map and returns its value.
     pub fn remove(self) -> V {
         unsafe { self.map.remove_entry_at_occupied_pos(self.node_ptr).1 }
     }
 
+    /// Removes the entry from the map and returns its key and value.
     pub fn remove_entry(self) -> (K, V) {
         unsafe { self.map.remove_entry_at_occupied_pos(self.node_ptr) }
     }
