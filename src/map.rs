@@ -1166,6 +1166,15 @@ impl<'a, K, V> Entry<'a, K, V> {
     }
 }
 
+impl<K: fmt::Debug + Ord, V: fmt::Debug> fmt::Debug for Entry<'_, K, V> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Entry::Vacant(ref v) => f.debug_tuple("Entry").field(v).finish(),
+            Entry::Occupied(ref o) => f.debug_tuple("Entry").field(o).finish(),
+        }
+    }
+}
+
 impl<'a, K, V> VacantEntry<'a, K, V> {
     pub fn key(&self) -> &K {
         &self.key
@@ -1180,6 +1189,14 @@ impl<'a, K, V> VacantEntry<'a, K, V> {
             self.map
                 .insert_entry_at_vacant_pos(self.parent, self.insert_pos, self.key, value)
         }
+    }
+}
+
+impl<K: Ord + fmt::Debug, V: fmt::Debug> fmt::Debug for VacantEntry<'_, K, V> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("OccupiedEntry")
+            .field("key", self.key())
+            .finish()
     }
 }
 
@@ -1210,6 +1227,15 @@ impl<'a, K, V> OccupiedEntry<'a, K, V> {
 
     pub fn remove_entry(self) -> (K, V) {
         unsafe { self.map.remove_entry_at_occupied_pos(self.node_ptr) }
+    }
+}
+
+impl<K: Ord + fmt::Debug, V: fmt::Debug> fmt::Debug for OccupiedEntry<'_, K, V> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("OccupiedEntry")
+            .field("key", self.key())
+            .field("value", self.get())
+            .finish()
     }
 }
 
@@ -1816,6 +1842,10 @@ fn test_entry() {
         .collect();
 
     let occupied = map.entry(40);
+    assert_eq!(
+        format!("{:?}", occupied),
+        r#"Entry(OccupiedEntry { key: 40, value: "foo" })"#
+    );
     assert_eq!(occupied.key(), &40);
     if let Entry::Occupied(occupied_entry) = occupied {
         assert_eq!(occupied_entry.key(), &40);
@@ -1824,6 +1854,7 @@ fn test_entry() {
     }
 
     let vacant = map.entry(42);
+    assert_eq!(format!("{:?}", vacant), r"Entry(OccupiedEntry { key: 42 })");
     assert_eq!(vacant.key(), &42);
     if let Entry::Vacant(vacant_entry) = vacant {
         assert_eq!(vacant_entry.key(), &42);
