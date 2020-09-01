@@ -1158,10 +1158,43 @@ impl<K, V> Node<K, V> {
 }
 
 impl<'a, K, V> Entry<'a, K, V> {
-    fn key(&self) -> &K {
+    pub fn key(&self) -> &K {
         match *self {
             Entry::Vacant(ref v) => v.key(),
             Entry::Occupied(ref o) => o.key(),
+        }
+    }
+
+    pub fn and_modify<F: FnOnce(&mut V)>(self, f: F) -> Self {
+        match self {
+            Entry::Occupied(mut o) => {
+                f(o.get_mut());
+                Entry::Occupied(o)
+            }
+            Entry::Vacant(v) => Entry::Vacant(v),
+        }
+    }
+
+    pub fn or_insert(self, value: V) -> &'a mut V {
+        match self {
+            Entry::Occupied(o) => o.into_mut(),
+            Entry::Vacant(v) => v.insert(value),
+        }
+    }
+
+    pub fn or_insert_with<F: FnOnce() -> V>(self, create_value: F) -> &'a mut V {
+        match self {
+            Entry::Occupied(o) => o.into_mut(),
+            Entry::Vacant(v) => v.insert(create_value()),
+        }
+    }
+}
+
+impl<'a, K, V: Default> Entry<'a, K, V> {
+    pub fn or_default(self) -> &'a mut V {
+        match self {
+            Entry::Occupied(o) => o.into_mut(),
+            Entry::Vacant(v) => v.insert(Default::default()),
         }
     }
 }
