@@ -172,8 +172,6 @@ fn test_rebalance() {
 fn test_insert() {
     let mut rng = StdRng::seed_from_u64(0);
     let mut values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
-    values.sort();
-    values.dedup();
 
     let mut map = AvlTreeMap::new();
     for value in &values {
@@ -181,6 +179,9 @@ fn test_insert() {
         map.check_consistency();
     }
     assert!(map.len() == values.len());
+
+    values.sort();
+    values.dedup();
 
     for value in &values {
         assert_eq!(map.insert(*value, *value), Some(*value));
