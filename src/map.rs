@@ -1153,6 +1153,10 @@ impl<K: Clone, V: Clone> Clone for AvlTreeMap<K, V> {
     }
 }
 
+unsafe impl<K, V> Sync for AvlTreeMap<K, V> {}
+
+unsafe impl<K, V> Send for AvlTreeMap<K, V> {}
+
 impl<K: PartialEq, V: PartialEq> PartialEq for AvlTreeMap<K, V> {
     fn eq(&self, other: &Self) -> bool {
         self.len() == self.len() && self.iter().zip(other).all(|(lhs, rhs)| lhs == rhs)
