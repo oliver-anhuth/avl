@@ -1153,20 +1153,6 @@ impl<K: Clone, V: Clone> Clone for AvlTreeMap<K, V> {
     }
 }
 
-impl<Q, K, V> Index<&Q> for AvlTreeMap<K, V>
-where
-    K: Ord + Borrow<Q>,
-    Q: Ord + ?Sized,
-{
-    type Output = V;
-    /// Returns a reference to the value for the given key.
-    /// # Panics
-    /// Panics if the key is not present in the map.
-    fn index(&self, key: &Q) -> &V {
-        self.get(key).expect("no entry found for key")
-    }
-}
-
 impl<K: PartialEq, V: PartialEq> PartialEq for AvlTreeMap<K, V> {
     fn eq(&self, other: &Self) -> bool {
         self.len() == self.len() && self.iter().zip(other).all(|(lhs, rhs)| lhs == rhs)
@@ -1207,6 +1193,20 @@ where
     }
 }
 
+impl<Q, K, V> Index<&Q> for AvlTreeMap<K, V>
+where
+    K: Ord + Borrow<Q>,
+    Q: Ord + ?Sized,
+{
+    type Output = V;
+    /// Returns a reference to the value for the given key.
+    /// # Panics
+    /// Panics if the key is not present in the map.
+    fn index(&self, key: &Q) -> &V {
+        self.get(key).expect("no entry found for key")
+    }
+}
+
 impl<'a, K, V> IntoIterator for &'a AvlTreeMap<K, V> {
     type Item = (&'a K, &'a V);
     type IntoIter = Iter<'a, K, V>;
@@ -1233,10 +1233,7 @@ impl<K, V> IntoIterator for AvlTreeMap<K, V> {
     }
 }
 
-impl<K, V> Extend<(K, V)> for AvlTreeMap<K, V>
-where
-    K: Ord,
-{
+impl<K: Ord, V> Extend<(K, V)> for AvlTreeMap<K, V> {
     fn extend<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = (K, V)>,
@@ -1456,10 +1453,7 @@ impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
     }
 }
 
-impl<'a, K, V> Range<'a, K, V>
-where
-    K: fmt::Debug,
-{
+impl<'a, K: fmt::Debug, V> Range<'a, K, V> {
     #[doc(hidden)] // This is just for the set implementation
     pub fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let keys = Keys {
@@ -1524,10 +1518,7 @@ impl<K, V> Clone for Keys<'_, K, V> {
     }
 }
 
-impl<K, V> fmt::Debug for Keys<'_, K, V>
-where
-    K: fmt::Debug,
-{
+impl<K: fmt::Debug, V> fmt::Debug for Keys<'_, K, V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[")?;
         let mut sep = "";
@@ -1568,10 +1559,7 @@ impl<K, V> Clone for Values<'_, K, V> {
     }
 }
 
-impl<K, V> fmt::Debug for Values<'_, K, V>
-where
-    V: fmt::Debug,
-{
+impl<K, V: fmt::Debug> fmt::Debug for Values<'_, K, V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[")?;
         let mut sep = "";
@@ -1690,10 +1678,7 @@ impl<'a, K, V> DoubleEndedIterator for RangeMut<'a, K, V> {
     }
 }
 
-impl<K, V> fmt::Debug for ValuesMut<'_, K, V>
-where
-    V: fmt::Debug,
-{
+impl<K, V: fmt::Debug> fmt::Debug for ValuesMut<'_, K, V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[")?;
         let mut sep = "";
@@ -1816,10 +1801,7 @@ impl<'a, K, V> NodeIter<'a, K, V> {
     }
 }
 
-impl<K, V> IntoIter<K, V>
-where
-    K: fmt::Debug,
-{
+impl<K: fmt::Debug, V> IntoIter<K, V> {
     #[doc(hidden)] // This is just for the set implementation
     pub fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Safe to access elements in remaining range, no mutable references have been created yet
