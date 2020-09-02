@@ -494,6 +494,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         R: RangeBounds<Q>,
         Q: Ord + ?Sized,
     {
+        // Check for invalid range
         match (range.start_bound(), range.end_bound()) {
             (Bound::Excluded(s), Bound::Excluded(e)) if s == e => {
                 panic!("range start and end are equal and excluded")
@@ -528,14 +529,14 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
             }
         };
 
-        let is_valid_range = match (first, last) {
-            (None, _) | (_, None) => false,
+        let is_empty_range = match (first, last) {
+            (None, _) | (_, None) => true,
             (Some(first_ptr), Some(last_ptr)) => unsafe {
-                first_ptr.as_ref().key <= last_ptr.as_ref().key
+                first_ptr.as_ref().key > last_ptr.as_ref().key
             },
         };
 
-        if !is_valid_range {
+        if is_empty_range {
             first = None;
             last = None;
         }
