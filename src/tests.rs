@@ -245,6 +245,16 @@ fn test_get() {
         let got = map.get_key_value(value);
         assert_eq!(got, Some((value, &(value.wrapping_add(2)))));
     }
+
+    // Test owned and borrowed types in the interface
+    let mut map: AvlTreeMap<String, String> = AvlTreeMap::new();
+    map.insert(String::from("1"), String::from("one"));
+    map.insert(String::from("2"), String::from("two"));
+    map.insert(String::from("3"), String::from("three"));
+    map.insert(String::from("4"), String::from("four"));
+    map.insert(String::from("5"), String::from("five"));
+    assert_eq!(map.get("2"), Some(&String::from("two")));
+    //assert_eq!(map["4"], "four");
 }
 
 #[test]
