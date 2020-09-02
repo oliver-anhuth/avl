@@ -1153,12 +1153,16 @@ impl<K: Clone, V: Clone> Clone for AvlTreeMap<K, V> {
     }
 }
 
-impl<K: Ord, V> Index<&K> for AvlTreeMap<K, V> {
+impl<Q, K, V> Index<&Q> for AvlTreeMap<K, V>
+where
+    K: Ord + Borrow<Q>,
+    Q: Ord + ?Sized,
+{
     type Output = V;
     /// Returns a reference to the value for the given key.
     /// # Panics
     /// Panics if the key is not present in the map.
-    fn index(&self, key: &K) -> &V {
+    fn index(&self, key: &Q) -> &V {
         self.get(key).expect("no entry found for key")
     }
 }

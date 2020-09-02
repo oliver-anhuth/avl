@@ -254,7 +254,7 @@ fn test_get() {
     map.insert(String::from("4"), String::from("four"));
     map.insert(String::from("5"), String::from("five"));
     assert_eq!(map.get("2"), Some(&String::from("two")));
-    //assert_eq!(map["4"], "four");
+    assert_eq!(map["4"], "four");
 }
 
 #[test]
