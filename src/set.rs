@@ -1,5 +1,6 @@
 //! An ordered set implemented with an AVL tree.
 
+use std::borrow::Borrow;
 use std::fmt;
 use std::iter::FromIterator;
 use std::ops::RangeBounds;
@@ -50,12 +51,26 @@ impl<T: Ord> AvlTreeSet<T> {
     }
 
     /// Returns a reference to the value in the set that is equal to the given value.
-    pub fn get(&self, value: &T) -> Option<&T> {
+    ///
+    /// The value may be any borrowed form of the set's value type, but the ordering
+    /// on the borrowed form *must* match the ordering on the value type.
+    pub fn get<Q>(&self, value: &Q) -> Option<&T>
+    where
+        T: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         self.map.get_key_value(value).map(|kv| kv.0)
     }
 
     /// Returns true if the set contains a value.
-    pub fn contains(&self, value: &T) -> bool {
+    ///
+    /// The value may be any borrowed form of the set's value type, but the ordering
+    /// on the borrowed form *must* match the ordering on the value type.
+    pub fn contains<Q>(&self, value: &Q) -> bool
+    where
+        T: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         self.map.contains_key(value)
     }
 
@@ -66,13 +81,27 @@ impl<T: Ord> AvlTreeSet<T> {
 
     /// Removes a value from the set.
     /// Returns whether the value was previously in the set.
-    pub fn remove(&mut self, value: &T) -> bool {
+    ///
+    /// The value may be any borrowed form of the set's value type, but the ordering
+    /// on the borrowed form *must* match the ordering on the value type.
+    pub fn remove<Q>(&mut self, value: &Q) -> bool
+    where
+        T: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         self.map.remove(value).is_some()
     }
 
     /// Removes a value from the set.
     /// Returns the value if it was previously in the set.
-    pub fn take(&mut self, value: &T) -> Option<T> {
+    ///
+    /// The value may be any borrowed form of the set's value type, but the ordering
+    /// on the borrowed form *must* match the ordering on the value type.
+    pub fn take<Q>(&mut self, value: &Q) -> Option<T>
+    where
+        T: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         self.map.remove_entry(value).map(|(k, _)| k)
     }
 
@@ -83,11 +112,19 @@ impl<T: Ord> AvlTreeSet<T> {
 
     /// Gets an iterator over a sub-range of values in the set in sorted order.
     ///
+    /// The value may be any borrowed form of the set's value type, but the ordering
+    /// on the borrowed form *must* match the ordering on the value type.
+    ///
     /// # Panics
     ///
     /// Panics if range `start > end`.
     /// Panics if range `start == end` and both bounds are `Excluded`.
-    pub fn range<R: RangeBounds<T>>(&self, range: R) -> Range<'_, T> {
+    pub fn range<Q, R>(&self, range: R) -> Range<'_, T>
+    where
+        T: Borrow<Q>,
+        R: RangeBounds<Q>,
+        Q: Ord + ?Sized,
+    {
         Range {
             map_range: self.map.range(range),
         }
