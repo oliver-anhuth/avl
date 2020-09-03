@@ -1,6 +1,9 @@
 //! An ordered set implemented with an AVL tree.
 
+#![allow(dead_code)]
+
 use std::borrow::Borrow;
+use std::cmp::Ordering;
 use std::fmt;
 use std::iter::FromIterator;
 use std::ops::RangeBounds;
@@ -39,6 +42,20 @@ pub struct Range<'a, T> {
 /// An owning iterator over the values of a set.
 pub struct IntoIter<T> {
     map_into_iter: MapIntoIter<T, ()>,
+}
+
+/// A lazy iterator for the values in the union of two sets.
+///
+/// This `struct` is created by the [`union`] method on [`AvlTreeSet`].
+///
+/// [`AvlTreeSet`]: struct.AvlTreeSet.html
+/// [`union`]: struct.AvlTreeSet.html#method.union
+#[derive(Clone)]
+pub struct Union<'a, T> {
+    lhs: Option<&'a T>,
+    rhs: Option<&'a T>,
+    lhs_iter: Iter<'a, T>,
+    rhs_iter: Iter<'a, T>,
 }
 
 impl<T: Ord> AvlTreeSet<T> {
@@ -158,6 +175,13 @@ impl<T> AvlTreeSet<T> {
         Iter {
             map_iter: self.map.keys(),
         }
+    }
+
+    /// Gets an iterator over the values of the union set,
+    /// i.e., all values in `self` or `other`, without duplicates,
+    /// in ascending order.
+    pub fn union<'a>(&'a self, other: &'a Self) -> Union<'a, T> {
+        Union::new(self.iter(), other.iter())
     }
 }
 
@@ -283,5 +307,48 @@ impl<T> Iterator for IntoIter<T> {
 impl<T> DoubleEndedIterator for IntoIter<T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.map_into_iter.next_back().map(|(k, _)| k)
+    }
+}
+
+impl<'a, T> Union<'a, T> {
+    fn new(mut lhs_iter: Iter<'a, T>, mut rhs_iter: Iter<'a, T>) -> Self {
+        Self {
+            lhs: lhs_iter.next(),
+            rhs: rhs_iter.next(),
+            lhs_iter,
+            rhs_iter,
+        }
+    }
+}
+
+impl<'a, T: Ord> Iterator for Union<'a, T> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        match (self.lhs, self.rhs) {
+            (None, None) => None,
+            (Some(lhs), None) => {
+                self.lhs = self.lhs_iter.next();
+                Some(lhs)
+            }
+            (None, Some(rhs)) => {
+                self.rhs = self.rhs_iter.next();
+                Some(rhs)
+            }
+            (Some(lhs), Some(rhs)) => match lhs.cmp(rhs) {
+                Ordering::Less => {
+                    self.lhs = self.lhs_iter.next();
+                    Some(lhs)
+                }
+                Ordering::Equal => {
+                    self.lhs = self.lhs_iter.next();
+                    self.rhs = self.rhs_iter.next();
+                    Some(lhs)
+                }
+                _ => {
+                    self.rhs = self.rhs_iter.next();
+                    Some(rhs)
+                }
+            },
+        }
     }
 }
