@@ -5,7 +5,7 @@ use avl::AvlTreeMap;
 
 const N: i32 = 100_000;
 
-pub fn bench(c: &mut Criterion) {
+pub fn benchmarks(c: &mut Criterion) {
     let mut rng = StdRng::seed_from_u64(0);
     let values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
 
@@ -49,5 +49,5 @@ pub fn bench(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, bench);
+criterion_group!(benches, benchmarks);
 criterion_main!(benches);
