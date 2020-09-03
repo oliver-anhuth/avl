@@ -1805,6 +1805,10 @@ impl<'a, K, V> NodeIter<'a, K, V> {
     }
 }
 
+unsafe impl<'a, K, V> Sync for NodeIter<'a, K, V> {}
+
+unsafe impl<'a, K, V> Send for NodeIter<'a, K, V> {}
+
 impl<K: fmt::Debug, V> IntoIter<K, V> {
     #[doc(hidden)] // This is just for the set implementation
     pub fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -1989,3 +1993,7 @@ impl<K, V> Drop for NodeEater<K, V> {
         });
     }
 }
+
+unsafe impl<K, V> Sync for NodeEater<K, V> {}
+
+unsafe impl<K, V> Send for NodeEater<K, V> {}
