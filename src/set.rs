@@ -55,6 +55,19 @@ pub struct Union<'a, T> {
     rhs_iter: Iter<'a, T>,
 }
 
+/// A lazy iterator for the values in the intersection of two sets.
+///
+/// This `struct` is created by the [`intersection`] method on [`AvlTreeSet`].
+///
+/// [`AvlTreeSet`]: struct.AvlTreeSet.html
+/// [`intersection`]: struct.AvlTreeSet.html#method.intersection
+pub struct Intersection<'a, T> {
+    lhs: Option<&'a T>,
+    rhs: Option<&'a T>,
+    lhs_iter: Iter<'a, T>,
+    rhs_iter: Iter<'a, T>,
+}
+
 impl<T: Ord> AvlTreeSet<T> {
     /// Creates an empty set.
     /// No memory is allocated until the first item is inserted.
@@ -144,6 +157,26 @@ impl<T: Ord> AvlTreeSet<T> {
         }
     }
 
+    /// Gets an iterator over the values of the union set,
+    /// i.e., all values in `self` or `other`, without duplicates,
+    /// in ascending order.
+    pub fn union<'a>(&'a self, other: &'a Self) -> Union<'a, T> {
+        Union::new(self, other)
+    }
+
+    /// Gets an iterator over the values of the intersection set,
+    /// i.e., all values that are botih in `self` and `other`,
+    /// in ascending order.
+    pub fn intersection<'a>(&'a self, other: &'a Self) -> Intersection<'a, T> {
+        Intersection::new(self, other)
+    }
+
+    /// Returns `true` if `self` has no elements in common with `other`.
+    /// This is equivalent to checking for an empty intersection.
+    pub fn is_disjoint(&self, other: &Self) -> bool {
+        self.intersection(other).next().is_none()
+    }
+
     /// Asserts that the internal tree structure is consistent.
     #[cfg(any(test, feature = "consistency_check"))]
     pub fn check_consistency(&self) {
@@ -172,13 +205,6 @@ impl<T> AvlTreeSet<T> {
         Iter {
             map_iter: self.map.keys(),
         }
-    }
-
-    /// Gets an iterator over the values of the union set,
-    /// i.e., all values in `self` or `other`, without duplicates,
-    /// in ascending order.
-    pub fn union<'a>(&'a self, other: &'a Self) -> Union<'a, T> {
-        Union::new(self.iter(), other.iter())
     }
 }
 
@@ -325,8 +351,10 @@ impl<T> DoubleEndedIterator for IntoIter<T> {
     }
 }
 
-impl<'a, T> Union<'a, T> {
-    fn new(mut lhs_iter: Iter<'a, T>, mut rhs_iter: Iter<'a, T>) -> Self {
+impl<'a, T: Ord> Union<'a, T> {
+    fn new(lhs: &'a AvlTreeSet<T>, rhs: &'a AvlTreeSet<T>) -> Self {
+        let mut lhs_iter = lhs.iter();
+        let mut rhs_iter = rhs.iter();
         Self {
             lhs: lhs_iter.next(),
             rhs: rhs_iter.next(),
@@ -378,11 +406,67 @@ impl<'a, T: Ord> Iterator for Union<'a, T> {
                     self.rhs = self.rhs_iter.next();
                     Some(lhs)
                 }
-                _ => {
+                Ordering::Greater => {
                     self.rhs = self.rhs_iter.next();
                     Some(rhs)
                 }
             },
+        }
+    }
+}
+
+impl<'a, T: Ord> Intersection<'a, T> {
+    fn new(lhs: &'a AvlTreeSet<T>, rhs: &'a AvlTreeSet<T>) -> Self {
+        let mut lhs_iter = lhs.iter();
+        let mut rhs_iter = rhs.iter();
+        Self {
+            lhs: lhs_iter.next(),
+            rhs: rhs_iter.next(),
+            lhs_iter,
+            rhs_iter,
+        }
+    }
+}
+
+// Auto derived Clone seems to have an invalid type bound of T: Clone
+impl<'a, T> Clone for Intersection<'a, T> {
+    fn clone(&self) -> Self {
+        Self {
+            lhs: self.lhs,
+            rhs: self.rhs,
+            lhs_iter: self.lhs_iter.clone(),
+            rhs_iter: self.rhs_iter.clone(),
+        }
+    }
+}
+
+impl<'a, T: Ord + fmt::Debug> fmt::Debug for Intersection<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Intersection")?;
+        f.debug_set().entries(self.clone()).finish()
+    }
+}
+
+impl<'a, T: Ord> Iterator for Intersection<'a, T> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match (self.lhs, self.rhs) {
+                (None, _) | (_, None) => return None,
+                (Some(lhs), Some(rhs)) => match lhs.cmp(rhs) {
+                    Ordering::Equal => {
+                        self.lhs = self.lhs_iter.next();
+                        self.rhs = self.rhs_iter.next();
+                        return Some(lhs);
+                    }
+                    Ordering::Less => {
+                        self.lhs = self.lhs_iter.next();
+                    }
+                    Ordering::Greater => {
+                        self.rhs = self.rhs_iter.next();
+                    }
+                },
+            }
         }
     }
 }

@@ -712,4 +712,28 @@ fn test_set_ops() {
         assert_eq!(union.next(), Some(value));
     }
     assert!(union.next().is_none());
+
+    for value in s1.intersection(&s2) {
+        assert!(*value % 2 == 0 && *value % 3 == 0);
+    }
+    assert!([0, 1, 2, 2, 4, 8, 9, 10, 12, 19]
+        .iter()
+        .cloned()
+        .collect::<AvlTreeSet<_>>()
+        .is_disjoint(
+            &[3, 5, 7, 11, 13, 15, 15]
+                .iter()
+                .cloned()
+                .collect::<AvlTreeSet<_>>()
+        ));
+    assert!(![0, 1, 2, 4, 8, 9, 9, 10, 12, 19]
+        .iter()
+        .cloned()
+        .collect::<AvlTreeSet<_>>()
+        .is_disjoint(
+            &[3, 5, 7, 7, 11, 12, 13]
+                .iter()
+                .cloned()
+                .collect::<AvlTreeSet<_>>()
+        ));
 }
