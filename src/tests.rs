@@ -6,7 +6,6 @@ use super::{AvlTreeMap, AvlTreeSet};
 use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
 
 const N: i32 = 1_000;
-const LARGE_N: i32 = 10_000_000;
 
 #[test]
 fn test_new() {
@@ -696,26 +695,4 @@ fn test_set_iter() {
     assert_eq!(format!("{:?}", set.range(3..=8)), "[3, 4, 5, 6, 7, 8]");
     assert_eq!(format!("{:?}", set.range(3..=3)), "[3]");
     assert_eq!(format!("{:?}", set.range(3..3)), "[]");
-}
-
-#[test]
-#[ignore]
-fn test_large() {
-    use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
-
-    let mut rng = StdRng::seed_from_u64(0);
-    let mut values: Vec<i32> = (0..LARGE_N).map(|_| rng.gen_range(0, LARGE_N)).collect();
-
-    let mut map = AvlTreeMap::new();
-    for value in &values {
-        map.insert(*value, *value);
-    }
-    map.check_consistency();
-
-    values.shuffle(&mut rng);
-    values.resize(values.len() / 2, 0);
-    for value in &values {
-        map.remove(value);
-    }
-    map.check_consistency();
 }
