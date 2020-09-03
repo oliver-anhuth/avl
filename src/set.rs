@@ -28,13 +28,11 @@ pub struct AvlTreeSet<T> {
 }
 
 /// An iterator over the values of a set.
-#[derive(Clone)]
 pub struct Iter<'a, T> {
     map_iter: MapIter<'a, T, ()>,
 }
 
 /// An iterator over a range of values of a set.
-#[derive(Clone)]
 pub struct Range<'a, T> {
     map_range: MapRange<'a, T, ()>,
 }
@@ -50,7 +48,6 @@ pub struct IntoIter<T> {
 ///
 /// [`AvlTreeSet`]: struct.AvlTreeSet.html
 /// [`union`]: struct.AvlTreeSet.html#method.union
-#[derive(Clone)]
 pub struct Union<'a, T> {
     lhs: Option<&'a T>,
     rhs: Option<&'a T>,
@@ -253,6 +250,15 @@ where
     }
 }
 
+// Auto derived clone seems to have an invalid type bound of T: Clone
+impl<'a, T> Clone for Iter<'a, T> {
+    fn clone(&self) -> Self {
+        Self {
+            map_iter: self.map_iter.clone(),
+        }
+    }
+}
+
 impl<T: fmt::Debug> fmt::Debug for Iter<'_, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self.map_iter)
@@ -269,6 +275,15 @@ impl<'a, T> Iterator for Iter<'a, T> {
 impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.map_iter.next_back()
+    }
+}
+
+// Auto derived clone seems to have an invalid type bound of T: Clone
+impl<'a, T> Clone for Range<'a, T> {
+    fn clone(&self) -> Self {
+        Self {
+            map_range: self.map_range.clone(),
+        }
     }
 }
 
@@ -318,6 +333,25 @@ impl<'a, T> Union<'a, T> {
             lhs_iter,
             rhs_iter,
         }
+    }
+}
+
+// Auto derived clone seems to have an invalid type bound of T: Clone
+impl<'a, T> Clone for Union<'a, T> {
+    fn clone(&self) -> Self {
+        Self {
+            lhs: self.lhs,
+            rhs: self.rhs,
+            lhs_iter: self.lhs_iter.clone(),
+            rhs_iter: self.rhs_iter.clone(),
+        }
+    }
+}
+
+impl<'a, T: Ord + fmt::Debug> fmt::Debug for Union<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Union")?;
+        f.debug_set().entries(self.clone()).finish()
     }
 }
 
