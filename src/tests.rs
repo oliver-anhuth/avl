@@ -699,8 +699,8 @@ fn test_set_iter() {
 
 #[test]
 fn test_set_ops() {
-    let s1: AvlTreeSet<i32> = (0..10).map(|x| 2 * x).collect();
-    let s2: AvlTreeSet<i32> = (0..10).map(|x| 3 * x).collect();
+    let s1: AvlTreeSet<i32> = (0..N).map(|x| 2 * x).collect();
+    let s2: AvlTreeSet<i32> = (0..N).map(|x| 3 * x).collect();
 
     let mut values: Vec<_> = s1.iter().cloned().collect();
     values.extend(s2.iter());
@@ -711,4 +711,5 @@ fn test_set_ops() {
     for value in &values {
         assert_eq!(union.next(), Some(value));
     }
+    assert!(union.next().is_none());
 }
