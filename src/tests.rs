@@ -716,6 +716,16 @@ fn test_set_ops() {
     for value in s1.intersection(&s2) {
         assert!(*value % 2 == 0 && *value % 3 == 0);
     }
+    assert_eq!(
+        format!(
+            "{:?}",
+            (0..N)
+                .collect::<AvlTreeSet<_>>()
+                .intersection(&(42..=45).collect::<AvlTreeSet<_>>())
+        ),
+        "Intersection{42, 43, 44, 45}"
+    );
+
     assert!([0, 1, 2, 2, 4, 8, 9, 10, 12, 19]
         .iter()
         .cloned()
