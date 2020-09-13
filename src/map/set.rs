@@ -64,8 +64,8 @@ pub struct Union<'a, T> {
 pub struct Intersection<'a, T> {
     lhs_peek: Option<&'a T>,
     rhs_peek: Option<&'a T>,
-    lhs_iter: Iter<'a, T>,
-    rhs_iter: Iter<'a, T>,
+    lhs_iter: Range<'a, T>,
+    rhs_iter: Range<'a, T>,
 }
 
 impl<T: Ord> AvlTreeSet<T> {
@@ -417,8 +417,8 @@ impl<'a, T: Ord> Iterator for Union<'a, T> {
 
 impl<'a, T: Ord> Intersection<'a, T> {
     fn new(lhs: &'a AvlTreeSet<T>, rhs: &'a AvlTreeSet<T>) -> Self {
-        let mut lhs_iter = lhs.iter();
-        let mut rhs_iter = rhs.iter();
+        let mut lhs_iter = lhs.range(..);
+        let mut rhs_iter = rhs.range(..);
         Self {
             lhs_peek: lhs_iter.next(),
             rhs_peek: rhs_iter.next(),
