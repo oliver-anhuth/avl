@@ -148,10 +148,8 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         K: Borrow<Q>,
         Q: Ord + ?Sized,
     {
-        if let Some(node_ptr) = self.find(key) {
-            return Some(&unsafe { &*node_ptr.as_ptr() }.value);
-        }
-        None
+        let node_ptr = self.find(key)?;
+        Some(&unsafe { &*node_ptr.as_ptr() }.value)
     }
 
     /// Returns a mutable reference to the value corresponding to the key.
@@ -163,10 +161,8 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         K: Borrow<Q>,
         Q: Ord + ?Sized,
     {
-        if let Some(node_ptr) = self.find(key) {
-            return Some(&mut unsafe { &mut *node_ptr.as_ptr() }.value);
-        }
-        None
+        let node_ptr = self.find(key)?;
+        Some(&mut unsafe { &mut *node_ptr.as_ptr() }.value)
     }
 
     /// Returns references to the key-value pair corresponding to the key.
@@ -178,13 +174,11 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         K: Borrow<Q>,
         Q: Ord + ?Sized,
     {
-        if let Some(node_ptr) = self.find(key) {
-            return Some((
-                &unsafe { &*node_ptr.as_ptr() }.key,
-                &unsafe { &*node_ptr.as_ptr() }.value,
-            ));
-        }
-        None
+        let node_ptr = self.find(key)?;
+        Some((
+            &unsafe { &*node_ptr.as_ptr() }.key,
+            &unsafe { &*node_ptr.as_ptr() }.value,
+        ))
     }
 
     /// Returns true if the key is in the map, else false.
@@ -408,35 +402,35 @@ impl<K, V> AvlTreeMap<K, V> {
     /// Gets an iterator over the entries of the map, sorted by key.
     pub fn iter(&self) -> Iter<'_, K, V> {
         Iter {
-            node_iter: unsafe { NodeIter::new(self.find_min(), self.find_max()) },
+            node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
         }
     }
 
     /// Gets an iterator over the keys of the map, in sorted order.
     pub fn keys(&self) -> Keys<'_, K, V> {
         Keys {
-            node_iter: unsafe { NodeIter::new(self.find_min(), self.find_max()) },
+            node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
         }
     }
 
     /// Gets an iterator over the values of the map, in order by key.
     pub fn values(&self) -> Values<'_, K, V> {
         Values {
-            node_iter: unsafe { NodeIter::new(self.find_min(), self.find_max()) },
+            node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
         }
     }
 
     /// Gets a mutable iterator over the values of the map, in order by key.
     pub fn values_mut(&self) -> ValuesMut<'_, K, V> {
         ValuesMut {
-            node_iter: unsafe { NodeIter::new(self.find_min(), self.find_max()) },
+            node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
         }
     }
 
     /// Gets a mutable iterator over the entries of the map, sorted by key.
     pub fn iter_mut(&mut self) -> IterMut<K, V> {
         IterMut {
-            node_iter: unsafe { NodeIter::new(self.find_min(), self.find_max()) },
+            node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
         }
     }
 }
@@ -515,7 +509,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         };
 
         let mut first = match range.start_bound() {
-            Bound::Unbounded => self.find_min(),
+            Bound::Unbounded => self.find_first(),
             Bound::Included(key) => self.find_start_bound_included(key),
             Bound::Excluded(key) => self.find_start_bound_excluded(key),
         };
@@ -523,7 +517,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         let mut last = None;
         if first.is_some() {
             last = match range.end_bound() {
-                Bound::Unbounded => self.find_max(),
+                Bound::Unbounded => self.find_last(),
                 Bound::Included(key) => self.find_end_bound_included(key),
                 Bound::Excluded(key) => self.find_end_bound_excluded(key),
             }
@@ -688,7 +682,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
 }
 
 impl<K, V> AvlTreeMap<K, V> {
-    fn find_min(&self) -> Link<K, V> {
+    fn find_first(&self) -> Link<K, V> {
         let mut min_ptr = self.root?;
         while let Some(left_ptr) = unsafe { min_ptr.as_ref().left } {
             min_ptr = left_ptr;
@@ -696,7 +690,7 @@ impl<K, V> AvlTreeMap<K, V> {
         Some(min_ptr)
     }
 
-    fn find_max(&self) -> Link<K, V> {
+    fn find_last(&self) -> Link<K, V> {
         let mut max_ptr = self.root?;
         while let Some(right_ptr) = unsafe { max_ptr.as_ref().right } {
             max_ptr = right_ptr;
@@ -1856,8 +1850,8 @@ impl<K, V> DoubleEndedIterator for IntoIter<K, V> {
 impl<K, V> NodeEater<K, V> {
     fn new(mut map: AvlTreeMap<K, V>) -> Self {
         let node_eater = Self {
-            first: map.find_min(),
-            last: map.find_max(),
+            first: map.find_first(),
+            last: map.find_last(),
         };
         map.root.take();
         node_eater
