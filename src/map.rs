@@ -11,6 +11,8 @@ use std::mem;
 use std::ops::{Bound, Index, RangeBounds};
 use std::ptr::NonNull;
 
+pub mod set;
+
 /// An ordered map implemented with an AVL tree.
 ///
 /// ```
@@ -1404,6 +1406,16 @@ impl<K: Ord + fmt::Debug, V: fmt::Debug> fmt::Debug for OccupiedEntry<'_, K, V> 
     }
 }
 
+impl<K: fmt::Debug, V> Iter<'_, K, V> {
+    // This is just for the set implementation
+    fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let keys = Keys {
+            node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
+        };
+        write!(f, "{:?}", keys)
+    }
+}
+
 impl<K, V> Clone for Iter<'_, K, V> {
     fn clone(&self) -> Self {
         Self {
@@ -1452,8 +1464,8 @@ impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
 }
 
 impl<'a, K: fmt::Debug, V> Range<'a, K, V> {
-    #[doc(hidden)] // This is just for the set implementation
-    pub fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    // This is just for the set implementation
+    fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let keys = Keys {
             node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
         };
@@ -1804,8 +1816,8 @@ unsafe impl<'a, K, V> Sync for NodeIter<'a, K, V> {}
 unsafe impl<'a, K, V> Send for NodeIter<'a, K, V> {}
 
 impl<K: fmt::Debug, V> IntoIter<K, V> {
-    #[doc(hidden)] // This is just for the set implementation
-    pub fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    // This is just for the set implementation
+    fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Safe to access elements in remaining range, no mutable references have been created yet
         let keys = Keys {
             node_iter: unsafe { NodeIter::new(self.node_eater.first, self.node_eater.last) },

@@ -8,7 +8,9 @@ pub use set::AvlTreeSet;
 
 #[doc(inline)]
 pub mod map;
-pub mod set;
+
+#[doc(inline)]
+pub use map::set;
 
 #[cfg(test)]
 mod tests;
