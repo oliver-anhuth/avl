@@ -49,8 +49,8 @@ pub struct IntoIter<T> {
 /// [`AvlTreeSet`]: struct.AvlTreeSet.html
 /// [`union`]: struct.AvlTreeSet.html#method.union
 pub struct Union<'a, T> {
-    lhs: Option<&'a T>,
-    rhs: Option<&'a T>,
+    lhs_peek: Option<&'a T>,
+    rhs_peek: Option<&'a T>,
     lhs_iter: Iter<'a, T>,
     rhs_iter: Iter<'a, T>,
 }
@@ -62,8 +62,8 @@ pub struct Union<'a, T> {
 /// [`AvlTreeSet`]: struct.AvlTreeSet.html
 /// [`intersection`]: struct.AvlTreeSet.html#method.intersection
 pub struct Intersection<'a, T> {
-    lhs: Option<&'a T>,
-    rhs: Option<&'a T>,
+    lhs_peek: Option<&'a T>,
+    rhs_peek: Option<&'a T>,
     lhs_iter: Iter<'a, T>,
     rhs_iter: Iter<'a, T>,
 }
@@ -356,8 +356,8 @@ impl<'a, T: Ord> Union<'a, T> {
         let mut lhs_iter = lhs.iter();
         let mut rhs_iter = rhs.iter();
         Self {
-            lhs: lhs_iter.next(),
-            rhs: rhs_iter.next(),
+            lhs_peek: lhs_iter.next(),
+            rhs_peek: rhs_iter.next(),
             lhs_iter,
             rhs_iter,
         }
@@ -368,8 +368,8 @@ impl<'a, T: Ord> Union<'a, T> {
 impl<'a, T> Clone for Union<'a, T> {
     fn clone(&self) -> Self {
         Self {
-            lhs: self.lhs,
-            rhs: self.rhs,
+            lhs_peek: self.lhs_peek,
+            rhs_peek: self.rhs_peek,
             lhs_iter: self.lhs_iter.clone(),
             rhs_iter: self.rhs_iter.clone(),
         }
@@ -386,28 +386,28 @@ impl<'a, T: Ord + fmt::Debug> fmt::Debug for Union<'a, T> {
 impl<'a, T: Ord> Iterator for Union<'a, T> {
     type Item = &'a T;
     fn next(&mut self) -> Option<Self::Item> {
-        match (self.lhs, self.rhs) {
+        match (self.lhs_peek, self.rhs_peek) {
             (None, None) => None,
             (Some(lhs), None) => {
-                self.lhs = self.lhs_iter.next();
+                self.lhs_peek = self.lhs_iter.next();
                 Some(lhs)
             }
             (None, Some(rhs)) => {
-                self.rhs = self.rhs_iter.next();
+                self.rhs_peek = self.rhs_iter.next();
                 Some(rhs)
             }
             (Some(lhs), Some(rhs)) => match lhs.cmp(rhs) {
                 Ordering::Less => {
-                    self.lhs = self.lhs_iter.next();
+                    self.lhs_peek = self.lhs_iter.next();
                     Some(lhs)
                 }
                 Ordering::Equal => {
-                    self.lhs = self.lhs_iter.next();
-                    self.rhs = self.rhs_iter.next();
+                    self.lhs_peek = self.lhs_iter.next();
+                    self.rhs_peek = self.rhs_iter.next();
                     Some(lhs)
                 }
                 Ordering::Greater => {
-                    self.rhs = self.rhs_iter.next();
+                    self.rhs_peek = self.rhs_iter.next();
                     Some(rhs)
                 }
             },
@@ -420,8 +420,8 @@ impl<'a, T: Ord> Intersection<'a, T> {
         let mut lhs_iter = lhs.iter();
         let mut rhs_iter = rhs.iter();
         Self {
-            lhs: lhs_iter.next(),
-            rhs: rhs_iter.next(),
+            lhs_peek: lhs_iter.next(),
+            rhs_peek: rhs_iter.next(),
             lhs_iter,
             rhs_iter,
         }
@@ -432,8 +432,8 @@ impl<'a, T: Ord> Intersection<'a, T> {
 impl<'a, T> Clone for Intersection<'a, T> {
     fn clone(&self) -> Self {
         Self {
-            lhs: self.lhs,
-            rhs: self.rhs,
+            lhs_peek: self.lhs_peek,
+            rhs_peek: self.rhs_peek,
             lhs_iter: self.lhs_iter.clone(),
             rhs_iter: self.rhs_iter.clone(),
         }
@@ -451,19 +451,19 @@ impl<'a, T: Ord> Iterator for Intersection<'a, T> {
     type Item = &'a T;
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            match (self.lhs, self.rhs) {
+            match (self.lhs_peek, self.rhs_peek) {
                 (None, _) | (_, None) => return None,
                 (Some(lhs), Some(rhs)) => match lhs.cmp(rhs) {
                     Ordering::Equal => {
-                        self.lhs = self.lhs_iter.next();
-                        self.rhs = self.rhs_iter.next();
+                        self.lhs_peek = self.lhs_iter.next();
+                        self.rhs_peek = self.rhs_iter.next();
                         return Some(lhs);
                     }
                     Ordering::Less => {
-                        self.lhs = self.lhs_iter.next();
+                        self.lhs_peek = self.lhs_iter.next();
                     }
                     Ordering::Greater => {
-                        self.rhs = self.rhs_iter.next();
+                        self.rhs_peek = self.rhs_iter.next();
                     }
                 },
             }
