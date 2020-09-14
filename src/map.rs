@@ -1406,13 +1406,26 @@ impl<K: Ord + fmt::Debug, V: fmt::Debug> fmt::Debug for OccupiedEntry<'_, K, V> 
     }
 }
 
-impl<K: fmt::Debug, V> Iter<'_, K, V> {
-    // This is just for the set implementation
-    fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let keys = Keys {
-            node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
-        };
-        write!(f, "{:?}", keys)
+impl<'a, K, V> Iterator for Iter<'a, K, V> {
+    type Item = (&'a K, &'a V);
+    fn next(&mut self) -> Option<Self::Item> {
+        let node_ptr = self.node_iter.pop_first()?;
+        unsafe {
+            let key: &'a K = &(*node_ptr.as_ptr()).key;
+            let value: &'a V = &(*node_ptr.as_ptr()).value;
+            Some((key, value))
+        }
+    }
+}
+
+impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let node_ptr = self.node_iter.pop_last()?;
+        unsafe {
+            let key: &'a K = &(*node_ptr.as_ptr()).key;
+            let value: &'a V = &(*node_ptr.as_ptr()).value;
+            Some((key, value))
+        }
     }
 }
 
@@ -1440,7 +1453,17 @@ where
     }
 }
 
-impl<'a, K, V> Iterator for Iter<'a, K, V> {
+impl<K: fmt::Debug, V> Iter<'_, K, V> {
+    // This is just for the set implementation
+    fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let keys = Keys {
+            node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
+        };
+        write!(f, "{:?}", keys)
+    }
+}
+
+impl<'a, K, V> Iterator for Range<'a, K, V> {
     type Item = (&'a K, &'a V);
     fn next(&mut self) -> Option<Self::Item> {
         let node_ptr = self.node_iter.pop_first()?;
@@ -1452,7 +1475,7 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
     }
 }
 
-impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
+impl<'a, K, V> DoubleEndedIterator for Range<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let node_ptr = self.node_iter.pop_last()?;
         unsafe {
@@ -1460,16 +1483,6 @@ impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
             let value: &'a V = &(*node_ptr.as_ptr()).value;
             Some((key, value))
         }
-    }
-}
-
-impl<'a, K: fmt::Debug, V> Range<'a, K, V> {
-    // This is just for the set implementation
-    fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let keys = Keys {
-            node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
-        };
-        write!(f, "{:?}", keys)
     }
 }
 
@@ -1497,25 +1510,23 @@ where
     }
 }
 
-impl<'a, K, V> Iterator for Range<'a, K, V> {
-    type Item = (&'a K, &'a V);
+impl<'a, K, V> Iterator for Keys<'a, K, V> {
+    type Item = &'a K;
     fn next(&mut self) -> Option<Self::Item> {
         let node_ptr = self.node_iter.pop_first()?;
         unsafe {
             let key: &'a K = &(*node_ptr.as_ptr()).key;
-            let value: &'a V = &(*node_ptr.as_ptr()).value;
-            Some((key, value))
+            Some(key)
         }
     }
 }
 
-impl<'a, K, V> DoubleEndedIterator for Range<'a, K, V> {
+impl<'a, K, V> DoubleEndedIterator for Keys<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let node_ptr = self.node_iter.pop_last()?;
         unsafe {
             let key: &'a K = &(*node_ptr.as_ptr()).key;
-            let value: &'a V = &(*node_ptr.as_ptr()).value;
-            Some((key, value))
+            Some(key)
         }
     }
 }
@@ -1540,44 +1551,13 @@ impl<K: fmt::Debug, V> fmt::Debug for Keys<'_, K, V> {
     }
 }
 
-impl<'a, K, V> Iterator for Keys<'a, K, V> {
-    type Item = &'a K;
-    fn next(&mut self) -> Option<Self::Item> {
-        let node_ptr = self.node_iter.pop_first()?;
-        unsafe {
-            let key: &'a K = &(*node_ptr.as_ptr()).key;
-            Some(key)
-        }
-    }
-}
-
-impl<'a, K, V> DoubleEndedIterator for Keys<'a, K, V> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        let node_ptr = self.node_iter.pop_last()?;
-        unsafe {
-            let key: &'a K = &(*node_ptr.as_ptr()).key;
-            Some(key)
-        }
-    }
-}
-
-impl<K, V> Clone for Values<'_, K, V> {
-    fn clone(&self) -> Self {
-        Self {
+impl<'a, K: fmt::Debug, V> Range<'a, K, V> {
+    // This is just for the set implementation
+    fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let keys = Keys {
             node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
-        }
-    }
-}
-
-impl<K, V: fmt::Debug> fmt::Debug for Values<'_, K, V> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[")?;
-        let mut sep = "";
-        for value in self.clone() {
-            write!(f, "{}{:?}", sep, value)?;
-            sep = ", ";
-        }
-        write!(f, "]")
+        };
+        write!(f, "{:?}", keys)
     }
 }
 
@@ -1602,20 +1582,20 @@ impl<'a, K, V> DoubleEndedIterator for Values<'a, K, V> {
     }
 }
 
-impl<K, V> fmt::Debug for IterMut<'_, K, V>
-where
-    K: fmt::Debug,
-    V: fmt::Debug,
-{
+impl<K, V> Clone for Values<'_, K, V> {
+    fn clone(&self) -> Self {
+        Self {
+            node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
+        }
+    }
+}
+
+impl<K, V: fmt::Debug> fmt::Debug for Values<'_, K, V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[")?;
         let mut sep = "";
-        // Safe to access elements in remaining range, no mutable references have been created yet
-        let iter = Iter {
-            node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
-        };
-        for (key, value) in iter {
-            write!(f, "{}({:?}, {:?})", sep, key, value)?;
+        for value in self.clone() {
+            write!(f, "{}{:?}", sep, value)?;
             sep = ", ";
         }
         write!(f, "]")
@@ -1645,7 +1625,7 @@ impl<'a, K, V> DoubleEndedIterator for IterMut<'a, K, V> {
     }
 }
 
-impl<K, V> fmt::Debug for RangeMut<'_, K, V>
+impl<K, V> fmt::Debug for IterMut<'_, K, V>
 where
     K: fmt::Debug,
     V: fmt::Debug,
@@ -1688,17 +1668,21 @@ impl<'a, K, V> DoubleEndedIterator for RangeMut<'a, K, V> {
     }
 }
 
-impl<K, V: fmt::Debug> fmt::Debug for ValuesMut<'_, K, V> {
+impl<K, V> fmt::Debug for RangeMut<'_, K, V>
+where
+    K: fmt::Debug,
+    V: fmt::Debug,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[")?;
         let mut sep = "";
         // Safe to access elements in remaining range, no mutable references have been created yet
-        let values = Values {
+        let iter = Iter {
             node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
         };
-        for value in values {
-            write!(f, "{}{:?}", sep, value)?;
-            sep = ", "
+        for (key, value) in iter {
+            write!(f, "{}({:?}, {:?})", sep, key, value)?;
+            sep = ", ";
         }
         write!(f, "]")
     }
@@ -1725,6 +1709,22 @@ impl<'a, K, V> DoubleEndedIterator for ValuesMut<'a, K, V> {
     }
 }
 
+impl<K, V: fmt::Debug> fmt::Debug for ValuesMut<'_, K, V> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[")?;
+        let mut sep = "";
+        // Safe to access elements in remaining range, no mutable references have been created yet
+        let values = Values {
+            node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
+        };
+        for value in values {
+            write!(f, "{}{:?}", sep, value)?;
+            sep = ", "
+        }
+        write!(f, "]")
+    }
+}
+
 impl<'a, K, V> NodeIter<'a, K, V> {
     unsafe fn new(first: Link<K, V>, last: Link<K, V>) -> Self {
         NodeIter {
@@ -1736,76 +1736,74 @@ impl<'a, K, V> NodeIter<'a, K, V> {
 
     fn pop_first(&mut self) -> Link<K, V> {
         let first = self.first;
-        if let Some(node_ptr) = first {
-            if self.first == self.last {
-                // Last remaining node in the range -> end iteration
-                self.first = None;
-                self.last = None;
-            } else if let Some(mut next_ptr) = unsafe { node_ptr.as_ref().right } {
-                // Next node in range is smallest child in right sub tree
-                while let Some(left_ptr) = unsafe { next_ptr.as_ref().left } {
-                    next_ptr = left_ptr;
-                }
-                self.first = Some(next_ptr);
-            } else {
-                // No right sub tree, walk upwards in the chain of parents,
-                // next node is the first parent which is reached from a left child.
-                // Note that we should not fall off the root, i.e. have a None parent,
-                // this would indicate an invalid node range (last before first, not same tree, etc).
-                let mut next_ptr = node_ptr;
-                loop {
-                    let from = Some(next_ptr);
-                    match unsafe { next_ptr.as_ref().parent } {
-                        None => panic!("Invalid node range"),
-                        Some(parent_ptr) => {
-                            next_ptr = parent_ptr;
-                            if unsafe { next_ptr.as_ref().left } == from {
-                                // We came back from left child -> this is the next node
-                                break;
-                            }
+        let node_ptr = first?;
+        if self.first == self.last {
+            // Last remaining node in the range -> end iteration
+            self.first = None;
+            self.last = None;
+        } else if let Some(mut next_ptr) = unsafe { node_ptr.as_ref().right } {
+            // Next node in range is smallest child in right sub tree
+            while let Some(left_ptr) = unsafe { next_ptr.as_ref().left } {
+                next_ptr = left_ptr;
+            }
+            self.first = Some(next_ptr);
+        } else {
+            // No right sub tree, walk upwards in the chain of parents,
+            // next node is the first parent which is reached from a left child.
+            // Note that we should not fall off the root, i.e. have a None parent,
+            // this would indicate an invalid node range (last before first, not same tree, etc).
+            let mut next_ptr = node_ptr;
+            loop {
+                let from = Some(next_ptr);
+                match unsafe { next_ptr.as_ref().parent } {
+                    None => panic!("Invalid node range"),
+                    Some(parent_ptr) => {
+                        next_ptr = parent_ptr;
+                        if unsafe { next_ptr.as_ref().left } == from {
+                            // We came back from left child -> this is the next node
+                            break;
                         }
                     }
                 }
-                self.first = Some(next_ptr);
             }
+            self.first = Some(next_ptr);
         }
         first
     }
 
     fn pop_last(&mut self) -> Link<K, V> {
         let last = self.last;
-        if let Some(node_ptr) = last {
-            if self.last == self.first {
-                // Last remaining node in the range -> end iteration
-                self.first = None;
-                self.last = None;
-            } else if let Some(mut next_ptr) = unsafe { node_ptr.as_ref().left } {
-                // Next node in range is biggest child in left sub tree
-                while let Some(right_ptr) = unsafe { next_ptr.as_ref().right } {
-                    next_ptr = right_ptr;
-                }
-                self.last = Some(next_ptr);
-            } else {
-                // No left sub tree, walk upwards in the chain of parents,
-                // next node is the first parent which is reached from a right child.
-                // Note that we should not fall off the root, i.e. have a None parent,
-                // this would indicate an invalid node range (last before first, not same tree, etc).
-                let mut next_ptr = node_ptr;
-                loop {
-                    let from = Some(next_ptr);
-                    match unsafe { next_ptr.as_ref().parent } {
-                        None => panic!("Invalid node range"),
-                        Some(parent_ptr) => {
-                            next_ptr = parent_ptr;
-                            if unsafe { next_ptr.as_ref().right } == from {
-                                // We came back from right child -> this is the next node
-                                break;
-                            }
+        let node_ptr = last?;
+        if self.last == self.first {
+            // Last remaining node in the range -> end iteration
+            self.first = None;
+            self.last = None;
+        } else if let Some(mut next_ptr) = unsafe { node_ptr.as_ref().left } {
+            // Next node in range is biggest child in left sub tree
+            while let Some(right_ptr) = unsafe { next_ptr.as_ref().right } {
+                next_ptr = right_ptr;
+            }
+            self.last = Some(next_ptr);
+        } else {
+            // No left sub tree, walk upwards in the chain of parents,
+            // next node is the first parent which is reached from a right child.
+            // Note that we should not fall off the root, i.e. have a None parent,
+            // this would indicate an invalid node range (last before first, not same tree, etc).
+            let mut next_ptr = node_ptr;
+            loop {
+                let from = Some(next_ptr);
+                match unsafe { next_ptr.as_ref().parent } {
+                    None => panic!("Invalid node range"),
+                    Some(parent_ptr) => {
+                        next_ptr = parent_ptr;
+                        if unsafe { next_ptr.as_ref().right } == from {
+                            // We came back from right child -> this is the next node
+                            break;
                         }
                     }
                 }
-                self.last = Some(next_ptr);
             }
+            self.last = Some(next_ptr);
         }
         last
     }
@@ -1871,119 +1869,113 @@ impl<K, V> NodeEater<K, V> {
 
     fn pop_first(&mut self) -> Option<(K, V)> {
         let mut first = self.first;
-        if let Some(node_ptr) = first {
-            if self.first == self.last {
-                // Last remaining node in the range -> end iteration
-                self.first = None;
-                self.last = None;
-            } else {
-                unsafe {
-                    // Replace node with right sub tree
-                    match node_ptr.as_ref().parent {
-                        None => {
-                            // Current node has no parent, right child becomes root of the tree
-                            // *            1
-                            //  \     =>   / \
-                            //   1
-                            //  / \
-                            first = node_ptr.as_ref().right;
-                            if let Some(mut root_ptr) = first {
-                                root_ptr.as_mut().parent = None;
-                            }
-                        }
-                        Some(mut parent_ptr) => {
-                            // Right child becomes parent's left sub tree
-                            //   A            A
-                            //  / \          / \
-                            // *      =>    1
-                            //  \          / \
-                            //   1
-                            //  / \
-                            parent_ptr.as_mut().left = node_ptr.as_ref().right;
-                            if let Some(mut left_ptr) = parent_ptr.as_ref().left {
-                                left_ptr.as_mut().parent = Some(parent_ptr);
-                                first = Some(left_ptr);
-                            } else {
-                                first = Some(parent_ptr);
-                            }
+        let node_ptr = first?;
+        if self.first == self.last {
+            // Last remaining node in the range -> end iteration
+            self.first = None;
+            self.last = None;
+        } else {
+            unsafe {
+                // Replace node with right sub tree
+                match node_ptr.as_ref().parent {
+                    None => {
+                        // Current node has no parent, right child becomes root of the tree
+                        // *            1
+                        //  \     =>   / \
+                        //   1
+                        //  / \
+                        first = node_ptr.as_ref().right;
+                        if let Some(mut root_ptr) = first {
+                            root_ptr.as_mut().parent = None;
                         }
                     }
-
-                    // Next node is smallest child in sub tree.
-                    if let Some(mut next_ptr) = first {
-                        while let Some(left_ptr) = next_ptr.as_ref().left {
-                            next_ptr = left_ptr;
+                    Some(mut parent_ptr) => {
+                        // Right child becomes parent's left sub tree
+                        //   A            A
+                        //  / \          / \
+                        // *      =>    1
+                        //  \          / \
+                        //   1
+                        //  / \
+                        parent_ptr.as_mut().left = node_ptr.as_ref().right;
+                        if let Some(mut left_ptr) = parent_ptr.as_ref().left {
+                            left_ptr.as_mut().parent = Some(parent_ptr);
+                            first = Some(left_ptr);
+                        } else {
+                            first = Some(parent_ptr);
                         }
-                        first = Some(next_ptr);
                     }
-
-                    self.first = first;
                 }
-            }
 
-            return Some(unsafe { Node::destroy(node_ptr) });
+                // Next node is smallest child in sub tree.
+                if let Some(mut next_ptr) = first {
+                    while let Some(left_ptr) = next_ptr.as_ref().left {
+                        next_ptr = left_ptr;
+                    }
+                    first = Some(next_ptr);
+                }
+
+                self.first = first;
+            }
         }
 
-        None
+        Some(unsafe { Node::destroy(node_ptr) })
     }
 
     fn pop_last(&mut self) -> Option<(K, V)> {
         let mut last = self.last;
-        if let Some(node_ptr) = last {
-            if self.last == self.first {
-                // Last remaining node in the range -> end iteration
-                self.first = None;
-                self.last = None;
-            } else {
-                unsafe {
-                    // Replace node with left sub tree
-                    match node_ptr.as_ref().parent {
-                        None => {
-                            // Current node has no parent, left child becomes root of the tree
-                            // Current node has no parent, right child becomes root of the tree
-                            //    *         1
-                            //   /    =>   / \
-                            //  1
-                            // / \
-                            last = node_ptr.as_ref().left;
-                            if let Some(mut root_ptr) = last {
-                                root_ptr.as_mut().parent = None;
-                            }
-                        }
-                        Some(mut parent_ptr) => {
-                            // Left child becomes parent's right sub tree
-                            //   A           A
-                            //  / \         / \
-                            //     *   =>      1
-                            //    /           / \
-                            //   1
-                            //  / \
-                            parent_ptr.as_mut().right = node_ptr.as_ref().left;
-                            if let Some(mut right_ptr) = parent_ptr.as_ref().right {
-                                right_ptr.as_mut().parent = Some(parent_ptr);
-                                last = Some(right_ptr);
-                            } else {
-                                last = Some(parent_ptr);
-                            }
+        let node_ptr = last?;
+        if self.last == self.first {
+            // Last remaining node in the range -> end iteration
+            self.first = None;
+            self.last = None;
+        } else {
+            unsafe {
+                // Replace node with left sub tree
+                match node_ptr.as_ref().parent {
+                    None => {
+                        // Current node has no parent, left child becomes root of the tree
+                        // Current node has no parent, right child becomes root of the tree
+                        //    *         1
+                        //   /    =>   / \
+                        //  1
+                        // / \
+                        last = node_ptr.as_ref().left;
+                        if let Some(mut root_ptr) = last {
+                            root_ptr.as_mut().parent = None;
                         }
                     }
-
-                    // Next node is biggest child in sub tree.
-                    if let Some(mut next_ptr) = last {
-                        while let Some(right_ptr) = next_ptr.as_ref().right {
-                            next_ptr = right_ptr;
+                    Some(mut parent_ptr) => {
+                        // Left child becomes parent's right sub tree
+                        //   A           A
+                        //  / \         / \
+                        //     *   =>      1
+                        //    /           / \
+                        //   1
+                        //  / \
+                        parent_ptr.as_mut().right = node_ptr.as_ref().left;
+                        if let Some(mut right_ptr) = parent_ptr.as_ref().right {
+                            right_ptr.as_mut().parent = Some(parent_ptr);
+                            last = Some(right_ptr);
+                        } else {
+                            last = Some(parent_ptr);
                         }
-                        last = Some(next_ptr);
                     }
-
-                    self.last = last;
                 }
-            }
 
-            return Some(unsafe { Node::destroy(node_ptr) });
+                // Next node is biggest child in sub tree.
+                if let Some(mut next_ptr) = last {
+                    while let Some(right_ptr) = next_ptr.as_ref().right {
+                        next_ptr = right_ptr;
+                    }
+                    last = Some(next_ptr);
+                }
+
+                self.last = last;
+            }
         }
 
-        None
+        Some(unsafe { Node::destroy(node_ptr) })
     }
 
     fn postorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
