@@ -545,35 +545,33 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         K: Borrow<Q>,
         Q: Ord + ?Sized,
     {
-        let mut first = None;
-        if let Some(mut node_ptr) = self.root {
-            loop {
-                node_ptr = unsafe {
-                    match key.cmp(node_ptr.as_ref().key.borrow()) {
-                        Ordering::Less => match node_ptr.as_ref().left {
-                            None => break,
-                            Some(left_ptr) => left_ptr,
-                        },
-                        Ordering::Greater => match node_ptr.as_ref().right {
-                            None => break,
-                            Some(right_ptr) => right_ptr,
-                        },
-                        Ordering::Equal => break,
-                    }
-                }
-            }
-            first = Some(node_ptr);
-            while let Some(node_ptr) = first {
-                unsafe {
-                    if key <= node_ptr.as_ref().key.borrow() {
-                        break;
-                    } else {
-                        first = node_ptr.as_ref().parent;
-                    }
+        let mut node_ptr = self.root?;
+        loop {
+            node_ptr = unsafe {
+                match key.cmp(node_ptr.as_ref().key.borrow()) {
+                    Ordering::Less => match node_ptr.as_ref().left {
+                        None => break,
+                        Some(left_ptr) => left_ptr,
+                    },
+                    Ordering::Greater => match node_ptr.as_ref().right {
+                        None => break,
+                        Some(right_ptr) => right_ptr,
+                    },
+                    Ordering::Equal => break,
                 }
             }
         }
-        first
+        let mut bound = Some(node_ptr);
+        while let Some(node_ptr) = bound {
+            unsafe {
+                if key <= node_ptr.as_ref().key.borrow() {
+                    break;
+                } else {
+                    bound = node_ptr.as_ref().parent;
+                }
+            }
+        }
+        bound
     }
 
     fn find_start_bound_excluded<Q>(&self, key: &Q) -> Link<K, V>
@@ -581,34 +579,32 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         K: Borrow<Q>,
         Q: Ord + ?Sized,
     {
-        let mut first = None;
-        if let Some(mut node_ptr) = self.root {
-            loop {
-                node_ptr = unsafe {
-                    match key.cmp(node_ptr.as_ref().key.borrow()) {
-                        Ordering::Less => match node_ptr.as_ref().left {
-                            None => break,
-                            Some(left_ptr) => left_ptr,
-                        },
-                        Ordering::Greater | Ordering::Equal => match node_ptr.as_ref().right {
-                            None => break,
-                            Some(right_ptr) => right_ptr,
-                        },
-                    }
-                }
-            }
-            first = Some(node_ptr);
-            while let Some(node_ptr) = first {
-                unsafe {
-                    if key < node_ptr.as_ref().key.borrow() {
-                        break;
-                    } else {
-                        first = node_ptr.as_ref().parent;
-                    }
+        let mut node_ptr = self.root?;
+        loop {
+            node_ptr = unsafe {
+                match key.cmp(node_ptr.as_ref().key.borrow()) {
+                    Ordering::Less => match node_ptr.as_ref().left {
+                        None => break,
+                        Some(left_ptr) => left_ptr,
+                    },
+                    Ordering::Greater | Ordering::Equal => match node_ptr.as_ref().right {
+                        None => break,
+                        Some(right_ptr) => right_ptr,
+                    },
                 }
             }
         }
-        first
+        let mut bound = Some(node_ptr);
+        while let Some(node_ptr) = bound {
+            unsafe {
+                if key < node_ptr.as_ref().key.borrow() {
+                    break;
+                } else {
+                    bound = node_ptr.as_ref().parent;
+                }
+            }
+        }
+        bound
     }
 
     fn find_end_bound_included<Q>(&self, key: &Q) -> Link<K, V>
@@ -616,35 +612,33 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         K: Borrow<Q>,
         Q: Ord + ?Sized,
     {
-        let mut first = None;
-        if let Some(mut node_ptr) = self.root {
-            loop {
-                node_ptr = unsafe {
-                    match key.cmp(node_ptr.as_ref().key.borrow()) {
-                        Ordering::Less => match node_ptr.as_ref().left {
-                            None => break,
-                            Some(left_ptr) => left_ptr,
-                        },
-                        Ordering::Greater => match node_ptr.as_ref().right {
-                            None => break,
-                            Some(right_ptr) => right_ptr,
-                        },
-                        Ordering::Equal => break,
-                    }
-                }
-            }
-            first = Some(node_ptr);
-            while let Some(node_ptr) = first {
-                unsafe {
-                    if key >= node_ptr.as_ref().key.borrow() {
-                        break;
-                    } else {
-                        first = node_ptr.as_ref().parent;
-                    }
+        let mut node_ptr = self.root?;
+        loop {
+            node_ptr = unsafe {
+                match key.cmp(node_ptr.as_ref().key.borrow()) {
+                    Ordering::Less => match node_ptr.as_ref().left {
+                        None => break,
+                        Some(left_ptr) => left_ptr,
+                    },
+                    Ordering::Greater => match node_ptr.as_ref().right {
+                        None => break,
+                        Some(right_ptr) => right_ptr,
+                    },
+                    Ordering::Equal => break,
                 }
             }
         }
-        first
+        let mut bound = Some(node_ptr);
+        while let Some(node_ptr) = bound {
+            unsafe {
+                if key >= node_ptr.as_ref().key.borrow() {
+                    break;
+                } else {
+                    bound = node_ptr.as_ref().parent;
+                }
+            }
+        }
+        bound
     }
 
     fn find_end_bound_excluded<Q>(&self, key: &Q) -> Link<K, V>
@@ -652,34 +646,32 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         K: Borrow<Q>,
         Q: Ord + ?Sized,
     {
-        let mut first = None;
-        if let Some(mut node_ptr) = self.root {
-            loop {
-                node_ptr = unsafe {
-                    match key.cmp(node_ptr.as_ref().key.borrow()) {
-                        Ordering::Less | Ordering::Equal => match node_ptr.as_ref().left {
-                            None => break,
-                            Some(left_ptr) => left_ptr,
-                        },
-                        Ordering::Greater => match node_ptr.as_ref().right {
-                            None => break,
-                            Some(right_ptr) => right_ptr,
-                        },
-                    }
-                }
-            }
-            first = Some(node_ptr);
-            while let Some(node_ptr) = first {
-                unsafe {
-                    if key > node_ptr.as_ref().key.borrow() {
-                        break;
-                    } else {
-                        first = node_ptr.as_ref().parent;
-                    }
+        let mut node_ptr = self.root?;
+        loop {
+            node_ptr = unsafe {
+                match key.cmp(node_ptr.as_ref().key.borrow()) {
+                    Ordering::Less | Ordering::Equal => match node_ptr.as_ref().left {
+                        None => break,
+                        Some(left_ptr) => left_ptr,
+                    },
+                    Ordering::Greater => match node_ptr.as_ref().right {
+                        None => break,
+                        Some(right_ptr) => right_ptr,
+                    },
                 }
             }
         }
-        first
+        let mut bound = Some(node_ptr);
+        while let Some(node_ptr) = bound {
+            unsafe {
+                if key > node_ptr.as_ref().key.borrow() {
+                    break;
+                } else {
+                    bound = node_ptr.as_ref().parent;
+                }
+            }
+        }
+        bound
     }
 }
 
