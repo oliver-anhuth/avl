@@ -1429,6 +1429,18 @@ impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
     }
 }
 
+impl<'a, K, V> Iter<'a, K, V> {
+    /// Peeks at next value without advancing the iterator.
+    fn peek(&self) -> Option<<Self as Iterator>::Item> {
+        let node_ptr = self.node_iter.peek_first()?;
+        unsafe {
+            let key: &'a K = &(*node_ptr.as_ptr()).key;
+            let value: &'a V = &(*node_ptr.as_ptr()).value;
+            Some((key, value))
+        }
+    }
+}
+
 impl<K, V> Clone for Iter<'_, K, V> {
     fn clone(&self) -> Self {
         Self {
@@ -1454,7 +1466,7 @@ where
 }
 
 impl<K: fmt::Debug, V> Iter<'_, K, V> {
-    // This is just for the set implementation
+    /// Shows only the keys of the iterator, used by set implementation.
     fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let keys = Keys {
             node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
@@ -1478,6 +1490,18 @@ impl<'a, K, V> Iterator for Range<'a, K, V> {
 impl<'a, K, V> DoubleEndedIterator for Range<'a, K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let node_ptr = self.node_iter.pop_last()?;
+        unsafe {
+            let key: &'a K = &(*node_ptr.as_ptr()).key;
+            let value: &'a V = &(*node_ptr.as_ptr()).value;
+            Some((key, value))
+        }
+    }
+}
+
+impl<'a, K, V> Range<'a, K, V> {
+    /// Peeks at next value without advancing the iterator.
+    fn peek(&self) -> Option<<Self as Iterator>::Item> {
+        let node_ptr = self.node_iter.peek_first()?;
         unsafe {
             let key: &'a K = &(*node_ptr.as_ptr()).key;
             let value: &'a V = &(*node_ptr.as_ptr()).value;
@@ -1552,7 +1576,7 @@ impl<K: fmt::Debug, V> fmt::Debug for Keys<'_, K, V> {
 }
 
 impl<'a, K: fmt::Debug, V> Range<'a, K, V> {
-    // This is just for the set implementation
+    /// Shows only the keys of the iterator, used by set implementation.
     fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let keys = Keys {
             node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
@@ -1734,6 +1758,12 @@ impl<'a, K, V> NodeIter<'a, K, V> {
         }
     }
 
+    /// Peeks at first node without taking it of the range.
+    fn peek_first(&self) -> Link<K, V> {
+        self.first
+    }
+
+    /// Pops first node from the range or returns None if range is empty.
     fn pop_first(&mut self) -> Link<K, V> {
         let first = self.first;
         let node_ptr = first?;
@@ -1814,7 +1844,7 @@ unsafe impl<'a, K, V> Sync for NodeIter<'a, K, V> {}
 unsafe impl<'a, K, V> Send for NodeIter<'a, K, V> {}
 
 impl<K: fmt::Debug, V> IntoIter<K, V> {
-    // This is just for the set implementation
+    /// Shows only the keys of the iterator, used by set implementation.
     fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Safe to access elements in remaining range, no mutable references have been created yet
         let keys = Keys {

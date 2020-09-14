@@ -49,8 +49,6 @@ pub struct IntoIter<T> {
 /// [`AvlTreeSet`]: struct.AvlTreeSet.html
 /// [`union`]: struct.AvlTreeSet.html#method.union
 pub struct Union<'a, T> {
-    lhs_peek: Option<&'a T>,
-    rhs_peek: Option<&'a T>,
     lhs_iter: Iter<'a, T>,
     rhs_iter: Iter<'a, T>,
 }
@@ -62,10 +60,8 @@ pub struct Union<'a, T> {
 /// [`AvlTreeSet`]: struct.AvlTreeSet.html
 /// [`intersection`]: struct.AvlTreeSet.html#method.intersection
 pub struct Intersection<'a, T> {
-    lhs_peek: Option<&'a T>,
-    rhs_peek: Option<&'a T>,
-    lhs_iter: Range<'a, T>,
-    rhs_iter: Range<'a, T>,
+    lhs_range: Range<'a, T>,
+    rhs_range: Range<'a, T>,
 }
 
 impl<T: Ord> AvlTreeSet<T> {
@@ -276,6 +272,19 @@ where
     }
 }
 
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.map_iter.next().map(|(k, _)| k)
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.map_iter.next_back().map(|(k, _)| k)
+    }
+}
+
 // Auto derived clone seems to have an invalid type bound of T: Clone
 impl<'a, T> Clone for Iter<'a, T> {
     fn clone(&self) -> Self {
@@ -291,16 +300,22 @@ impl<T: fmt::Debug> fmt::Debug for Iter<'_, T> {
     }
 }
 
-impl<'a, T> Iterator for Iter<'a, T> {
-    type Item = &'a T;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.map_iter.next().map(|(k, _)| k)
+impl<'a, T> Iter<'a, T> {
+    fn peek(&self) -> Option<<Self as Iterator>::Item> {
+        self.map_iter.peek().map(|(k, _)| k)
     }
 }
 
-impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
+impl<'a, T> Iterator for Range<'a, T> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.map_range.next().map(|(k, _)| k)
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for Range<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.map_iter.next_back().map(|(k, _)| k)
+        self.map_range.next_back().map(|(k, _)| k)
     }
 }
 
@@ -319,22 +334,9 @@ impl<T: fmt::Debug> fmt::Debug for Range<'_, T> {
     }
 }
 
-impl<'a, T> Iterator for Range<'a, T> {
-    type Item = &'a T;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.map_range.next().map(|(k, _)| k)
-    }
-}
-
-impl<'a, T> DoubleEndedIterator for Range<'a, T> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        self.map_range.next_back().map(|(k, _)| k)
-    }
-}
-
-impl<T: fmt::Debug> fmt::Debug for IntoIter<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.map_into_iter.fmt_keys(f)
+impl<'a, T> Range<'a, T> {
+    fn peek(&self) -> Option<<Self as Iterator>::Item> {
+        self.map_range.peek().map(|(k, _)| k)
     }
 }
 
@@ -351,15 +353,17 @@ impl<T> DoubleEndedIterator for IntoIter<T> {
     }
 }
 
+impl<T: fmt::Debug> fmt::Debug for IntoIter<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.map_into_iter.fmt_keys(f)
+    }
+}
+
 impl<'a, T: Ord> Union<'a, T> {
     fn new(lhs: &'a AvlTreeSet<T>, rhs: &'a AvlTreeSet<T>) -> Self {
-        let mut lhs_iter = lhs.iter();
-        let mut rhs_iter = rhs.iter();
         Self {
-            lhs_peek: lhs_iter.next(),
-            rhs_peek: rhs_iter.next(),
-            lhs_iter,
-            rhs_iter,
+            lhs_iter: lhs.iter(),
+            rhs_iter: rhs.iter(),
         }
     }
 }
@@ -368,8 +372,6 @@ impl<'a, T: Ord> Union<'a, T> {
 impl<'a, T> Clone for Union<'a, T> {
     fn clone(&self) -> Self {
         Self {
-            lhs_peek: self.lhs_peek,
-            rhs_peek: self.rhs_peek,
             lhs_iter: self.lhs_iter.clone(),
             rhs_iter: self.rhs_iter.clone(),
         }
@@ -386,28 +388,28 @@ impl<'a, T: Ord + fmt::Debug> fmt::Debug for Union<'a, T> {
 impl<'a, T: Ord> Iterator for Union<'a, T> {
     type Item = &'a T;
     fn next(&mut self) -> Option<Self::Item> {
-        match (self.lhs_peek, self.rhs_peek) {
+        match (self.lhs_iter.peek(), self.rhs_iter.peek()) {
             (None, None) => None,
             (Some(lhs), None) => {
-                self.lhs_peek = self.lhs_iter.next();
+                self.lhs_iter.next();
                 Some(lhs)
             }
             (None, Some(rhs)) => {
-                self.rhs_peek = self.rhs_iter.next();
+                self.rhs_iter.next();
                 Some(rhs)
             }
             (Some(lhs), Some(rhs)) => match lhs.cmp(rhs) {
                 Ordering::Less => {
-                    self.lhs_peek = self.lhs_iter.next();
+                    self.lhs_iter.next();
                     Some(lhs)
                 }
                 Ordering::Equal => {
-                    self.lhs_peek = self.lhs_iter.next();
-                    self.rhs_peek = self.rhs_iter.next();
+                    self.lhs_iter.next();
+                    self.rhs_iter.next();
                     Some(lhs)
                 }
                 Ordering::Greater => {
-                    self.rhs_peek = self.rhs_iter.next();
+                    self.rhs_iter.next();
                     Some(rhs)
                 }
             },
@@ -417,13 +419,9 @@ impl<'a, T: Ord> Iterator for Union<'a, T> {
 
 impl<'a, T: Ord> Intersection<'a, T> {
     fn new(lhs: &'a AvlTreeSet<T>, rhs: &'a AvlTreeSet<T>) -> Self {
-        let mut lhs_iter = lhs.range(..);
-        let mut rhs_iter = rhs.range(..);
         Self {
-            lhs_peek: lhs_iter.next(),
-            rhs_peek: rhs_iter.next(),
-            lhs_iter,
-            rhs_iter,
+            lhs_range: lhs.range(..),
+            rhs_range: rhs.range(..),
         }
     }
 }
@@ -432,10 +430,8 @@ impl<'a, T: Ord> Intersection<'a, T> {
 impl<'a, T> Clone for Intersection<'a, T> {
     fn clone(&self) -> Self {
         Self {
-            lhs_peek: self.lhs_peek,
-            rhs_peek: self.rhs_peek,
-            lhs_iter: self.lhs_iter.clone(),
-            rhs_iter: self.rhs_iter.clone(),
+            lhs_range: self.lhs_range.clone(),
+            rhs_range: self.rhs_range.clone(),
         }
     }
 }
@@ -451,19 +447,19 @@ impl<'a, T: Ord> Iterator for Intersection<'a, T> {
     type Item = &'a T;
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            match (self.lhs_peek, self.rhs_peek) {
+            match (self.lhs_range.peek(), self.rhs_range.peek()) {
                 (None, _) | (_, None) => return None,
                 (Some(lhs), Some(rhs)) => match lhs.cmp(rhs) {
                     Ordering::Equal => {
-                        self.lhs_peek = self.lhs_iter.next();
-                        self.rhs_peek = self.rhs_iter.next();
+                        self.lhs_range.next();
+                        self.rhs_range.next();
                         return Some(lhs);
                     }
                     Ordering::Less => {
-                        self.lhs_peek = self.lhs_iter.next();
+                        self.lhs_range.next();
                     }
                     Ordering::Greater => {
-                        self.rhs_peek = self.rhs_iter.next();
+                        self.rhs_range.next();
                     }
                 },
             }
