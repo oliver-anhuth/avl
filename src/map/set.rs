@@ -72,6 +72,30 @@ impl<T: Ord> AvlTreeSet<T> {
             map: AvlTreeMap::new(),
         }
     }
+}
+
+impl<T> AvlTreeSet<T> {
+    /// Returns true if the set contains no elements.
+    pub fn is_empty(&self) -> bool {
+        self.map.is_empty()
+    }
+
+    /// Returns the number of elements in the set.
+    pub fn len(&self) -> usize {
+        self.map.len()
+    }
+
+    /// Clears the set, deallocating all memory.
+    pub fn clear(&mut self) {
+        self.map.clear();
+    }
+
+    /// Gets an iterator over the values of the map in sorted order.
+    pub fn iter(&self) -> Iter<'_, T> {
+        Iter {
+            map_iter: self.map.iter(),
+        }
+    }
 
     /// Returns a reference to the value in the set that is equal to the given value.
     ///
@@ -95,11 +119,6 @@ impl<T: Ord> AvlTreeSet<T> {
         Q: Ord + ?Sized,
     {
         self.map.contains_key(value)
-    }
-
-    /// Inserts a value into the set.
-    pub fn insert(&mut self, value: T) -> bool {
-        self.map.insert(value, ()).is_none()
     }
 
     /// Removes a value from the set.
@@ -128,11 +147,6 @@ impl<T: Ord> AvlTreeSet<T> {
         self.map.remove_entry(value).map(|(k, _)| k)
     }
 
-    /// Moves all values from other into self, leaving other empty.
-    pub fn append(&mut self, other: &mut Self) {
-        self.map.append(&mut other.map);
-    }
-
     /// Gets an iterator over a sub-range of values in the set in sorted order.
     ///
     /// The value may be any borrowed form of the set's value type, but the ordering
@@ -151,6 +165,18 @@ impl<T: Ord> AvlTreeSet<T> {
         Range {
             map_range: self.map.range(range),
         }
+    }
+}
+
+impl<T: Ord> AvlTreeSet<T> {
+    /// Inserts a value into the set.
+    pub fn insert(&mut self, value: T) -> bool {
+        self.map.insert(value, ()).is_none()
+    }
+
+    /// Moves all values from other into self, leaving other empty.
+    pub fn append(&mut self, other: &mut Self) {
+        self.map.append(&mut other.map);
     }
 
     /// Gets an iterator over the values of the union set,
@@ -177,30 +203,6 @@ impl<T: Ord> AvlTreeSet<T> {
     #[cfg(any(test, feature = "consistency_check"))]
     pub fn check_consistency(&self) {
         self.map.check_consistency()
-    }
-}
-
-impl<T> AvlTreeSet<T> {
-    /// Returns true if the set contains no elements.
-    pub fn is_empty(&self) -> bool {
-        self.map.is_empty()
-    }
-
-    /// Returns the number of elements in the set.
-    pub fn len(&self) -> usize {
-        self.map.len()
-    }
-
-    /// Clears the set, deallocating all memory.
-    pub fn clear(&mut self) {
-        self.map.clear();
-    }
-
-    /// Gets an iterator over the values of the map in sorted order.
-    pub fn iter(&self) -> Iter<'_, T> {
-        Iter {
-            map_iter: self.map.iter(),
-        }
     }
 }
 

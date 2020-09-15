@@ -140,6 +140,35 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
             num_nodes: 0,
         }
     }
+}
+
+impl<K, V> AvlTreeMap<K, V> {
+    /// Returns true if the map contains no elements.
+    pub fn is_empty(&self) -> bool {
+        self.root.is_none()
+    }
+
+    /// Returns the number of elements in the map.
+    pub fn len(&self) -> usize {
+        self.num_nodes
+    }
+
+    #[cfg(test)]
+    pub fn height(&self) -> u16 {
+        match self.root {
+            None => 0,
+            Some(root_ptr) => unsafe { root_ptr.as_ref().height },
+        }
+    }
+
+    /// Clears the map, deallocating all memory.
+    pub fn clear(&mut self) {
+        self.postorder(|node_ptr| unsafe {
+            Node::destroy(node_ptr);
+        });
+        self.root = None;
+        self.num_nodes = 0;
+    }
 
     /// Returns a reference to the value corresponding to the key.
     ///
@@ -195,21 +224,6 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         self.find(key).is_some()
     }
 
-    /// Inserts a key-value pair into the map.
-    /// Returns None if the key is not in the map.
-    /// Updates the value if the key is already in the map and returns the old value.
-    pub fn insert(&mut self, key: K, value: V) -> Option<V> {
-        match self.find_insert_pos(&key) {
-            InsertPos::Vacant { parent, link_ptr } => unsafe {
-                self.insert_entry_at_vacant_pos(parent, link_ptr, key, value);
-                None
-            },
-            InsertPos::Occupied { node_ptr } => unsafe {
-                Some(self.insert_value_at_occupied_pos(node_ptr, value))
-            },
-        }
-    }
-
     /// Removes a key from the map.
     /// Returns the value at the key if the key was previously in the map.
     ///
@@ -237,6 +251,100 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         let node_ptr = self.find(key)?;
         let kv = unsafe { self.remove_entry_at_occupied_pos(node_ptr) };
         Some(kv)
+    }
+
+    /// Gets an iterator over a range of elements in the map, in order by key.
+    ///
+    /// The key may be any borrowed form of the map's key type, but the ordering
+    /// on the borrowed form *must* match the ordering on the key type.
+    ///
+    /// # Panics
+    ///
+    /// Panics if range `start > end`.
+    /// Panics if range `start == end` and both bounds are `Excluded`.
+    pub fn range<Q, R>(&self, range: R) -> Range<'_, K, V>
+    where
+        K: Borrow<Q>,
+        R: RangeBounds<Q>,
+        Q: Ord + ?Sized,
+    {
+        let (first, last) = self.find_range(range);
+        Range {
+            node_iter: unsafe { NodeIter::new(first, last) },
+        }
+    }
+
+    /// Gets a mutable iterator over a range of elements in the map, in order by key.
+    ///
+    /// The key may be any borrowed form of the map's key type, but the ordering
+    /// on the borrowed form *must* match the ordering on the key type.
+    ///
+    /// # Panics
+    ///
+    /// Panics if range `start > end`.
+    /// Panics if range `start == end` and both bounds are `Excluded`.
+    pub fn range_mut<Q, R>(&mut self, range: R) -> RangeMut<'_, K, V>
+    where
+        K: Borrow<Q>,
+        R: RangeBounds<Q>,
+        Q: Ord + ?Sized,
+    {
+        let (first, last) = self.find_range(range);
+        RangeMut {
+            node_iter: unsafe { NodeIter::new(first, last) },
+        }
+    }
+
+    /// Gets an iterator over the entries of the map, sorted by key.
+    pub fn iter(&self) -> Iter<'_, K, V> {
+        Iter {
+            node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
+        }
+    }
+
+    /// Gets an iterator over the keys of the map, in sorted order.
+    pub fn keys(&self) -> Keys<'_, K, V> {
+        Keys {
+            node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
+        }
+    }
+
+    /// Gets an iterator over the values of the map, in order by key.
+    pub fn values(&self) -> Values<'_, K, V> {
+        Values {
+            node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
+        }
+    }
+
+    /// Gets a mutable iterator over the values of the map, in order by key.
+    pub fn values_mut(&self) -> ValuesMut<'_, K, V> {
+        ValuesMut {
+            node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
+        }
+    }
+
+    /// Gets a mutable iterator over the entries of the map, sorted by key.
+    pub fn iter_mut(&mut self) -> IterMut<K, V> {
+        IterMut {
+            node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
+        }
+    }
+}
+
+impl<K: Ord, V> AvlTreeMap<K, V> {
+    /// Inserts a key-value pair into the map.
+    /// Returns None if the key is not in the map.
+    /// Updates the value if the key is already in the map and returns the old value.
+    pub fn insert(&mut self, key: K, value: V) -> Option<V> {
+        match self.find_insert_pos(&key) {
+            InsertPos::Vacant { parent, link_ptr } => unsafe {
+                self.insert_entry_at_vacant_pos(parent, link_ptr, key, value);
+                None
+            },
+            InsertPos::Occupied { node_ptr } => unsafe {
+                Some(self.insert_value_at_occupied_pos(node_ptr, value))
+            },
+        }
     }
 
     /// Moves all elements from other into self, leaving other empty.
@@ -280,48 +388,6 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
             key,
             marker: PhantomData,
         })
-    }
-
-    /// Gets an iterator over a range of elements in the map, in order by key.
-    ///
-    /// The key may be any borrowed form of the map's key type, but the ordering
-    /// on the borrowed form *must* match the ordering on the key type.
-    ///
-    /// # Panics
-    ///
-    /// Panics if range `start > end`.
-    /// Panics if range `start == end` and both bounds are `Excluded`.
-    pub fn range<Q, R>(&self, range: R) -> Range<'_, K, V>
-    where
-        K: Borrow<Q>,
-        R: RangeBounds<Q>,
-        Q: Ord + ?Sized,
-    {
-        let (first, last) = self.find_range(range);
-        Range {
-            node_iter: unsafe { NodeIter::new(first, last) },
-        }
-    }
-
-    /// Gets a mutable iterator over a range of elements in the map, in order by key.
-    ///
-    /// The key may be any borrowed form of the map's key type, but the ordering
-    /// on the borrowed form *must* match the ordering on the key type.
-    ///
-    /// # Panics
-    ///
-    /// Panics if range `start > end`.
-    /// Panics if range `start == end` and both bounds are `Excluded`.
-    pub fn range_mut<Q, R>(&mut self, range: R) -> RangeMut<'_, K, V>
-    where
-        K: Borrow<Q>,
-        R: RangeBounds<Q>,
-        Q: Ord + ?Sized,
-    {
-        let (first, last) = self.find_range(range);
-        RangeMut {
-            node_iter: unsafe { NodeIter::new(first, last) },
-        }
     }
 
     /// Asserts that the internal tree structure is consistent.
@@ -374,70 +440,6 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
 }
 
 impl<K, V> AvlTreeMap<K, V> {
-    /// Returns true if the map contains no elements.
-    pub fn is_empty(&self) -> bool {
-        self.root.is_none()
-    }
-
-    /// Returns the number of elements in the map.
-    pub fn len(&self) -> usize {
-        self.num_nodes
-    }
-
-    #[cfg(test)]
-    pub fn height(&self) -> u16 {
-        match self.root {
-            None => 0,
-            Some(root_ptr) => unsafe { root_ptr.as_ref().height },
-        }
-    }
-
-    /// Clears the map, deallocating all memory.
-    pub fn clear(&mut self) {
-        self.postorder(|node_ptr| unsafe {
-            Node::destroy(node_ptr);
-        });
-        self.root = None;
-        self.num_nodes = 0;
-    }
-
-    /// Gets an iterator over the entries of the map, sorted by key.
-    pub fn iter(&self) -> Iter<'_, K, V> {
-        Iter {
-            node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
-        }
-    }
-
-    /// Gets an iterator over the keys of the map, in sorted order.
-    pub fn keys(&self) -> Keys<'_, K, V> {
-        Keys {
-            node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
-        }
-    }
-
-    /// Gets an iterator over the values of the map, in order by key.
-    pub fn values(&self) -> Values<'_, K, V> {
-        Values {
-            node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
-        }
-    }
-
-    /// Gets a mutable iterator over the values of the map, in order by key.
-    pub fn values_mut(&self) -> ValuesMut<'_, K, V> {
-        ValuesMut {
-            node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
-        }
-    }
-
-    /// Gets a mutable iterator over the entries of the map, sorted by key.
-    pub fn iter_mut(&mut self) -> IterMut<K, V> {
-        IterMut {
-            node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
-        }
-    }
-}
-
-impl<K: Ord, V> AvlTreeMap<K, V> {
     fn find<Q>(&self, key: &Q) -> Link<K, V>
     where
         K: Borrow<Q>,
@@ -528,7 +530,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         let is_empty_range = match (first, last) {
             (None, _) | (_, None) => true,
             (Some(first_ptr), Some(last_ptr)) => unsafe {
-                first_ptr.as_ref().key > last_ptr.as_ref().key
+                first_ptr.as_ref().key.borrow() > last_ptr.as_ref().key.borrow()
             },
         };
 
@@ -673,9 +675,7 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         }
         bound
     }
-}
 
-impl<K, V> AvlTreeMap<K, V> {
     fn find_first(&self) -> Link<K, V> {
         let mut min_ptr = self.root?;
         while let Some(left_ptr) = unsafe { min_ptr.as_ref().left } {
