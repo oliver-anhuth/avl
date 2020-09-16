@@ -357,6 +357,26 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         }
     }
 
+    /// Splits the collection into two at the given key. Returns everything after the given key,
+    /// including the key.
+    pub fn split_off<Q>(&mut self, key: &Q) -> Self
+    where
+        K: Borrow<Q>,
+        Q: ?Sized + Ord,
+    {
+        let mut to_split = Self::new();
+        let mut split_off = Self::new();
+        mem::swap(&mut to_split, self);
+        for (k, v) in to_split {
+            if k.borrow() < key {
+                self.insert(k, v);
+            } else {
+                split_off.insert(k, v);
+            }
+        }
+        split_off
+    }
+
     /// Gets the map entry of given key for in-place manipulation.
     pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
         let mut parent: Link<K, V> = None;

@@ -341,6 +341,21 @@ fn test_append() {
 }
 
 #[test]
+fn test_split() {
+    let mut set = AvlTreeSet::new();
+    set.extend(
+        [
+            0, 3, 15, 42, 100, 100, 101, 100, 101, 102, 103, 115, 116, 1000,
+        ]
+        .iter()
+        .cloned(),
+    );
+    let offsplit = set.split_off(&115);
+    assert_eq!(format!("{:?}", set), "{0, 3, 15, 42, 100, 101, 102, 103}");
+    assert_eq!(format!("{:?}", offsplit), "{115, 116, 1000}");
+}
+
+#[test]
 fn test_map_entry() {
     let mut map: AvlTreeMap<_, _> = (0..100)
         .step_by(10)

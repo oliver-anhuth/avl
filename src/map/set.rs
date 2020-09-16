@@ -204,6 +204,18 @@ impl<T: Ord> AvlTreeSet<T> {
         self.map.append(&mut other.map);
     }
 
+    /// Splits the collection into two at the given key. Returns everything after the given key,
+    /// including the key.
+    pub fn split_off<Q>(&mut self, key: &Q) -> Self
+    where
+        T: Borrow<Q>,
+        Q: ?Sized + Ord,
+    {
+        Self {
+            map: self.map.split_off(key),
+        }
+    }
+
     /// Gets an iterator over the values of the union set,
     /// i.e., all values in `self` or `other`, without duplicates,
     /// in ascending order.
