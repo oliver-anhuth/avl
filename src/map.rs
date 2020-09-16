@@ -1380,6 +1380,10 @@ impl<K: Ord + fmt::Debug, V: fmt::Debug> fmt::Debug for VacantEntry<'_, K, V> {
     }
 }
 
+unsafe impl<K, V> Send for VacantEntry<'_, K, V> {}
+
+unsafe impl<K, V> Sync for VacantEntry<'_, K, V> {}
+
 impl<'a, K, V> OccupiedEntry<'a, K, V> {
     /// Returns a reference to the key of the entry.
     pub fn key(&self) -> &K {
@@ -1425,6 +1429,10 @@ impl<K: Ord + fmt::Debug, V: fmt::Debug> fmt::Debug for OccupiedEntry<'_, K, V> 
             .finish()
     }
 }
+
+unsafe impl<K, V> Send for OccupiedEntry<'_, K, V> {}
+
+unsafe impl<K, V> Sync for OccupiedEntry<'_, K, V> {}
 
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
