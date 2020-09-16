@@ -5,6 +5,7 @@
 use std::borrow::Borrow;
 use std::cmp::{self, Ordering};
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::iter::FromIterator;
 use std::marker::PhantomData;
 use std::mem;
@@ -1265,6 +1266,14 @@ where
         I: IntoIterator<Item = (&'a K, &'a V)>,
     {
         self.extend(iter.into_iter().map(|(&key, &value)| (key, value)));
+    }
+}
+
+impl<K: Hash, V: Hash> Hash for AvlTreeMap<K, V> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for kv in self {
+            kv.hash(state);
+        }
     }
 }
 

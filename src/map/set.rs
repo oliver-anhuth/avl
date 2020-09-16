@@ -22,7 +22,7 @@ use crate::map::{AvlTreeMap, IntoIter as MapIntoIter, Iter as MapIter, Range as 
 /// set.remove(&1);
 /// assert!(set.get(&1).is_none());
 /// ```
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AvlTreeSet<T> {
     map: AvlTreeMap<T, ()>,
 }
