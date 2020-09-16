@@ -542,6 +542,25 @@ impl<K, V> AvlTreeMap<K, V> {
         (first, last)
     }
 
+    fn reset_range_start_bound_included<Q>(&self, range: &mut Range<'_, K, V>, key: &Q)
+    where
+        K: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
+        let range_iter = &mut range.node_iter;
+        range_iter.first = self.find_start_bound_included(key);
+        let is_empty_range = match (range_iter.first, range_iter.last) {
+            (None, _) | (_, None) => true,
+            (Some(first_ptr), Some(last_ptr)) => unsafe {
+                first_ptr.as_ref().key.borrow() > last_ptr.as_ref().key.borrow()
+            },
+        };
+        if is_empty_range {
+            range_iter.first = None;
+            range_iter.last = None;
+        }
+    }
+
     fn find_start_bound_included<Q>(&self, key: &Q) -> Link<K, V>
     where
         K: Borrow<Q>,

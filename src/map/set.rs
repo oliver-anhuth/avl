@@ -60,7 +60,9 @@ pub struct Union<'a, T> {
 /// [`AvlTreeSet`]: struct.AvlTreeSet.html
 /// [`intersection`]: struct.AvlTreeSet.html#method.intersection
 pub struct Intersection<'a, T> {
+    lhs: &'a AvlTreeSet<T>,
     lhs_range: Range<'a, T>,
+    rhs: &'a AvlTreeSet<T>,
     rhs_range: Range<'a, T>,
 }
 
@@ -422,7 +424,9 @@ impl<'a, T: Ord> Iterator for Union<'a, T> {
 impl<'a, T: Ord> Intersection<'a, T> {
     fn new(lhs: &'a AvlTreeSet<T>, rhs: &'a AvlTreeSet<T>) -> Self {
         Self {
+            lhs,
             lhs_range: lhs.range(..),
+            rhs,
             rhs_range: rhs.range(..),
         }
     }
@@ -432,7 +436,9 @@ impl<'a, T: Ord> Intersection<'a, T> {
 impl<'a, T> Clone for Intersection<'a, T> {
     fn clone(&self) -> Self {
         Self {
+            lhs: self.lhs,
             lhs_range: self.lhs_range.clone(),
+            rhs: self.rhs,
             rhs_range: self.rhs_range.clone(),
         }
     }
@@ -458,10 +464,14 @@ impl<'a, T: Ord> Iterator for Intersection<'a, T> {
                         return Some(lhs);
                     }
                     Ordering::Less => {
-                        self.lhs_range.next();
+                        self.lhs
+                            .map
+                            .reset_range_start_bound_included(&mut self.lhs_range.map_range, rhs);
                     }
                     Ordering::Greater => {
-                        self.rhs_range.next();
+                        self.rhs
+                            .map
+                            .reset_range_start_bound_included(&mut self.rhs_range.map_range, lhs);
                     }
                 },
             }

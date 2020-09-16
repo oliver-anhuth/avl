@@ -725,6 +725,17 @@ fn test_set_ops() {
         ),
         "Intersection{42, 43, 44, 45}"
     );
+    assert_eq!(
+        format!(
+            "{:?}",
+            (0..1000).collect::<AvlTreeSet<_>>().intersection(
+                &vec![-1, 42, 500, 1000, 1001]
+                    .into_iter()
+                    .collect::<AvlTreeSet<_>>()
+            )
+        ),
+        "Intersection{42, 500}"
+    );
 
     assert!([0, 1, 2, 2, 4, 8, 9, 10, 12, 19]
         .iter()
