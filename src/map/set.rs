@@ -306,10 +306,7 @@ impl<T> IntoIterator for AvlTreeSet<T> {
     }
 }
 
-impl<T> Extend<T> for AvlTreeSet<T>
-where
-    T: Ord + Copy,
-{
+impl<T: Ord> Extend<T> for AvlTreeSet<T> {
     fn extend<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = T>,
