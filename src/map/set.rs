@@ -6,7 +6,7 @@ use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt;
 use std::iter::FromIterator;
-use std::ops::RangeBounds;
+use std::ops::{BitAnd, BitOr, BitXor, RangeBounds, Sub};
 
 use crate::map::{AvlTreeMap, IntoIter as MapIntoIter, Iter as MapIter, Range as MapRange};
 
@@ -330,6 +330,42 @@ where
         I: IntoIterator<Item = &'a T>,
     {
         self.extend(iter.into_iter().copied());
+    }
+}
+
+impl<T: Ord + Clone> BitOr<&AvlTreeSet<T>> for &AvlTreeSet<T> {
+    type Output = AvlTreeSet<T>;
+
+    /// Returns the union of `self` and `rhs` as a new set.
+    fn bitor(self, rhs: &AvlTreeSet<T>) -> AvlTreeSet<T> {
+        self.union(rhs).cloned().collect()
+    }
+}
+
+impl<T: Ord + Clone> BitAnd<&AvlTreeSet<T>> for &AvlTreeSet<T> {
+    type Output = AvlTreeSet<T>;
+
+    /// Returns the intersection of `self` and `rhs` as a new set.
+    fn bitand(self, rhs: &AvlTreeSet<T>) -> AvlTreeSet<T> {
+        self.intersection(rhs).cloned().collect()
+    }
+}
+
+impl<T: Ord + Clone> Sub<&AvlTreeSet<T>> for &AvlTreeSet<T> {
+    type Output = AvlTreeSet<T>;
+
+    /// Returns the difference of `self` and `rhs` as a new set.
+    fn sub(self, rhs: &AvlTreeSet<T>) -> AvlTreeSet<T> {
+        self.difference(rhs).cloned().collect()
+    }
+}
+
+impl<T: Ord + Clone> BitXor<&AvlTreeSet<T>> for &AvlTreeSet<T> {
+    type Output = AvlTreeSet<T>;
+
+    /// Returns the symmetric difference of `self` and `rhs` as a new set.
+    fn bitxor(self, rhs: &AvlTreeSet<T>) -> AvlTreeSet<T> {
+        self.symmetric_difference(rhs).cloned().collect()
     }
 }
 
