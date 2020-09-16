@@ -66,6 +66,29 @@ pub struct Intersection<'a, T> {
     rhs_range: Range<'a, T>,
 }
 
+/// A lazy iterator for the values in the difference of two sets.
+///
+/// This `struct` is created by the [`difference`] method on [`AvlTreeSet`].
+///
+/// [`AvlTreeSet`]: struct.AvlTreeSet.html
+/// [`difference`]: struct.AvlTreeSet.html#method.difference
+pub struct Difference<'a, T> {
+    lhs_range: Range<'a, T>,
+    rhs: &'a AvlTreeSet<T>,
+    rhs_range: Range<'a, T>,
+}
+
+/// A lazy iterator for the values in the symmetric difference of two sets.
+///
+/// This `struct` is created by the [`symmetric_difference`] method on [`AvlTreeSet`].
+///
+/// [`AvlTreeSet`]: struct.AvlTreeSet.html
+/// [`symmetric_difference`]: struct.AvlTreeSet.html#method.symmetric_difference
+pub struct SymmetricDifference<'a, T> {
+    lhs_iter: Iter<'a, T>,
+    rhs_iter: Iter<'a, T>,
+}
+
 impl<T: Ord> AvlTreeSet<T> {
     /// Creates an empty set.
     /// No memory is allocated until the first item is inserted.
@@ -193,6 +216,20 @@ impl<T: Ord> AvlTreeSet<T> {
     /// in ascending order.
     pub fn intersection<'a>(&'a self, other: &'a Self) -> Intersection<'a, T> {
         Intersection::new(self, other)
+    }
+
+    /// Gets an iterator over the values of the difference between two sets,
+    /// i.e., all values that are in `self` but not in `other`,
+    /// in ascending order.
+    pub fn difference<'a>(&'a self, other: &'a Self) -> Difference<'a, T> {
+        Difference::new(self, other)
+    }
+
+    /// Gets an iterator over the values of the symmectric difference of two sets,
+    /// i.e., all values in `self` or `other`, but not in both,
+    /// in ascending order.
+    pub fn symmetric_difference<'a>(&'a self, other: &'a Self) -> SymmetricDifference<'a, T> {
+        SymmetricDifference::new(self, other)
     }
 
     /// Returns `true` if `self` has no elements in common with `other`.
@@ -472,6 +509,123 @@ impl<'a, T: Ord> Iterator for Intersection<'a, T> {
                         self.rhs
                             .map
                             .reset_range_start_bound_included(&mut self.rhs_range.map_range, lhs);
+                    }
+                },
+            }
+        }
+    }
+}
+
+impl<'a, T: Ord> Difference<'a, T> {
+    fn new(lhs: &'a AvlTreeSet<T>, rhs: &'a AvlTreeSet<T>) -> Self {
+        Self {
+            lhs_range: lhs.range(..),
+            rhs,
+            rhs_range: rhs.range(..),
+        }
+    }
+}
+
+// Auto derived Clone seems to have an invalid type bound of T: Clone
+impl<'a, T> Clone for Difference<'a, T> {
+    fn clone(&self) -> Self {
+        Self {
+            lhs_range: self.lhs_range.clone(),
+            rhs: self.rhs,
+            rhs_range: self.rhs_range.clone(),
+        }
+    }
+}
+
+impl<'a, T: Ord + fmt::Debug> fmt::Debug for Difference<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Difference")?;
+        f.debug_set().entries(self.clone()).finish()
+    }
+}
+
+impl<'a, T: Ord> Iterator for Difference<'a, T> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match (self.lhs_range.peek(), self.rhs_range.peek()) {
+                (None, _) => return None,
+                (Some(lhs), None) => {
+                    self.lhs_range.next();
+                    return Some(lhs);
+                }
+                (Some(lhs), Some(rhs)) => match lhs.cmp(rhs) {
+                    Ordering::Equal => {
+                        self.lhs_range.next();
+                        self.rhs_range.next();
+                    }
+                    Ordering::Less => {
+                        self.lhs_range.next();
+                        return Some(lhs);
+                    }
+                    Ordering::Greater => {
+                        self.rhs
+                            .map
+                            .reset_range_start_bound_included(&mut self.rhs_range.map_range, lhs);
+                    }
+                },
+            }
+        }
+    }
+}
+
+impl<'a, T: Ord> SymmetricDifference<'a, T> {
+    fn new(lhs: &'a AvlTreeSet<T>, rhs: &'a AvlTreeSet<T>) -> Self {
+        Self {
+            lhs_iter: lhs.iter(),
+            rhs_iter: rhs.iter(),
+        }
+    }
+}
+
+// Auto derived clone seems to have an invalid type bound of T: Clone
+impl<'a, T> Clone for SymmetricDifference<'a, T> {
+    fn clone(&self) -> Self {
+        Self {
+            lhs_iter: self.lhs_iter.clone(),
+            rhs_iter: self.rhs_iter.clone(),
+        }
+    }
+}
+
+impl<'a, T: Ord + fmt::Debug> fmt::Debug for SymmetricDifference<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "SymmetricDifference")?;
+        f.debug_set().entries(self.clone()).finish()
+    }
+}
+
+impl<'a, T: Ord> Iterator for SymmetricDifference<'a, T> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match (self.lhs_iter.peek(), self.rhs_iter.peek()) {
+                (None, None) => return None,
+                (Some(lhs), None) => {
+                    self.lhs_iter.next();
+                    return Some(lhs);
+                }
+                (None, Some(rhs)) => {
+                    self.rhs_iter.next();
+                    return Some(rhs);
+                }
+                (Some(lhs), Some(rhs)) => match lhs.cmp(rhs) {
+                    Ordering::Less => {
+                        self.lhs_iter.next();
+                        return Some(lhs);
+                    }
+                    Ordering::Equal => {
+                        self.lhs_iter.next();
+                        self.rhs_iter.next();
+                    }
+                    Ordering::Greater => {
+                        self.rhs_iter.next();
+                        return Some(rhs);
                     }
                 },
             }

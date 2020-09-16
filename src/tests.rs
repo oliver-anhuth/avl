@@ -737,6 +737,43 @@ fn test_set_ops() {
         "Intersection{42, 500}"
     );
 
+    for value in s1.difference(&s2) {
+        assert!(*value % 2 == 0 && *value % 3 != 0);
+    }
+    assert_eq!(
+        format!(
+            "{:?}",
+            (0..1000)
+                .collect::<AvlTreeSet<_>>()
+                .difference(&(5..=995).collect::<AvlTreeSet<_>>())
+        ),
+        "Difference{0, 1, 2, 3, 4, 996, 997, 998, 999}"
+    );
+
+    for value in s1.symmetric_difference(&s2) {
+        println!("value = {}", value);
+        assert!(s1.contains(value) || s2.contains(value));
+        assert!(!(s1.contains(value) && s2.contains(value)));
+    }
+    assert_eq!(
+        format!(
+            "{:?}",
+            (0..1000)
+                .collect::<AvlTreeSet<_>>()
+                .symmetric_difference(&(5..=995).collect::<AvlTreeSet<_>>())
+        ),
+        "SymmetricDifference{0, 1, 2, 3, 4, 996, 997, 998, 999}"
+    );
+    assert_eq!(
+        format!(
+            "{:?}",
+            (5..=995)
+                .collect::<AvlTreeSet<_>>()
+                .symmetric_difference(&(0..1000).collect::<AvlTreeSet<_>>())
+        ),
+        "SymmetricDifference{0, 1, 2, 3, 4, 996, 997, 998, 999}"
+    );
+
     assert!([0, 1, 2, 2, 4, 8, 9, 10, 12, 19]
         .iter()
         .cloned()
