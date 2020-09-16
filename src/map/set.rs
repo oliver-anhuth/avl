@@ -238,6 +238,26 @@ impl<T: Ord> AvlTreeSet<T> {
         self.intersection(other).next().is_none()
     }
 
+    /// Returns `true` if the set is a subset of another,
+    /// i.e., `other` contains at least all the values in `self`.
+    pub fn is_subset(&self, other: &Self) -> bool {
+        if self.len() > other.len() {
+            return false;
+        }
+        for v in self {
+            if !other.contains(v) {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Returns `true` if the set is a superset of another,
+    /// i.e., `self` contains at least all the values in `other`.
+    pub fn is_superset(&self, other: &Self) -> bool {
+        other.is_subset(self)
+    }
+
     /// Asserts that the internal tree structure is consistent.
     #[cfg(any(test, feature = "consistency_check"))]
     pub fn check_consistency(&self) {
