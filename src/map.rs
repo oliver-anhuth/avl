@@ -32,7 +32,7 @@ pub struct AvlTreeMap<K, V> {
 }
 
 /// A node in the binary search tree, containing links to its parent node, left child, right child,
-/// its height (== maximum number of links to a leaf node) and a key, a value.
+/// its height (== maximum number of links to follow to reach a leaf node) and a key, a value.
 struct Node<K, V> {
     parent: Link<K, V>,
     left: Link<K, V>,
@@ -132,18 +132,19 @@ struct NodeEater<K, V> {
     last: Link<K, V>,
 }
 
-impl<K: Ord, V> AvlTreeMap<K, V> {
+impl<K, V> AvlTreeMap<K, V> {
     /// Creates an empty map.
     /// No memory is allocated until the first item is inserted.
-    pub fn new() -> Self {
+    pub fn new() -> Self
+    where
+        K: Ord,
+    {
         Self {
             root: None,
             num_nodes: 0,
         }
     }
-}
 
-impl<K, V> AvlTreeMap<K, V> {
     /// Returns true if the map contains no elements.
     pub fn is_empty(&self) -> bool {
         self.root.is_none()
@@ -225,6 +226,61 @@ impl<K, V> AvlTreeMap<K, V> {
         self.find(key).is_some()
     }
 
+    /// Inserts a key-value pair into the map.
+    /// Returns None if the key is not in the map.
+    /// Updates the value if the key is already in the map and returns the old value.
+    pub fn insert(&mut self, key: K, value: V) -> Option<V>
+    where
+        K: Ord,
+    {
+        match self.find_insert_pos(&key) {
+            InsertPos::Vacant { parent, link_ptr } => unsafe {
+                self.insert_entry_at_vacant_pos(parent, link_ptr, key, value);
+                None
+            },
+            InsertPos::Occupied { node_ptr } => unsafe {
+                Some(self.insert_value_at_occupied_pos(node_ptr, value))
+            },
+        }
+    }
+
+    /// Gets the map entry of given key for in-place manipulation.
+    pub fn entry(&mut self, key: K) -> Entry<'_, K, V>
+    where
+        K: Ord,
+    {
+        let mut parent: Link<K, V> = None;
+        let mut link_ptr: LinkPtr<K, V> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
+        unsafe {
+            while let Some(mut node_ptr) = link_ptr.as_ref() {
+                if key == node_ptr.as_ref().key {
+                    // Found key in the map -> return occupied entry
+                    return Entry::Occupied(OccupiedEntry {
+                        map: self,
+                        node_ptr,
+                        marker: PhantomData,
+                    });
+                } else {
+                    parent = *link_ptr.as_ref();
+                    if key < node_ptr.as_ref().key {
+                        link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().left);
+                    } else {
+                        link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().right);
+                    }
+                }
+            }
+        }
+
+        // Key is not in the map -> return vacant entry
+        Entry::Vacant(VacantEntry {
+            map: self,
+            parent,
+            insert_pos: link_ptr,
+            key,
+            marker: PhantomData,
+        })
+    }
+
     /// Removes a key from the map.
     /// Returns the value at the key if the key was previously in the map.
     ///
@@ -252,6 +308,40 @@ impl<K, V> AvlTreeMap<K, V> {
         let node_ptr = self.find(key)?;
         let kv = unsafe { self.remove_entry_at_occupied_pos(node_ptr) };
         Some(kv)
+    }
+
+    /// Moves all elements from other into self, leaving other empty.
+    pub fn append(&mut self, other: &mut Self)
+    where
+        K: Ord,
+    {
+        let mut node_eater = NodeEater::new(mem::replace(other, Self::new()));
+        while let Some(node_ptr) = node_eater.pop_first_node() {
+            unsafe {
+                self.insert_node(node_ptr);
+            }
+        }
+    }
+
+    /// Splits the collection into two at the given key. Returns everything after the given key,
+    /// including the key.
+    pub fn split_off<Q>(&mut self, key: &Q) -> Self
+    where
+        K: Ord + Borrow<Q>,
+        Q: ?Sized + Ord,
+    {
+        let mut node_eater = NodeEater::new(mem::replace(self, Self::new()));
+        let mut offsplit = Self::new();
+        while let Some(node_ptr) = node_eater.pop_first_node() {
+            unsafe {
+                if node_ptr.as_ref().key.borrow() < key {
+                    self.insert_node(node_ptr);
+                } else {
+                    offsplit.insert_node(node_ptr);
+                }
+            }
+        }
+        offsplit
     }
 
     /// Gets an iterator over a range of elements in the map, in order by key.
@@ -330,92 +420,13 @@ impl<K, V> AvlTreeMap<K, V> {
             node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
         }
     }
-}
-
-impl<K: Ord, V> AvlTreeMap<K, V> {
-    /// Inserts a key-value pair into the map.
-    /// Returns None if the key is not in the map.
-    /// Updates the value if the key is already in the map and returns the old value.
-    pub fn insert(&mut self, key: K, value: V) -> Option<V> {
-        match self.find_insert_pos(&key) {
-            InsertPos::Vacant { parent, link_ptr } => unsafe {
-                self.insert_entry_at_vacant_pos(parent, link_ptr, key, value);
-                None
-            },
-            InsertPos::Occupied { node_ptr } => unsafe {
-                Some(self.insert_value_at_occupied_pos(node_ptr, value))
-            },
-        }
-    }
-
-    /// Moves all elements from other into self, leaving other empty.
-    pub fn append(&mut self, other: &mut Self) {
-        let mut node_eater = NodeEater::new(mem::replace(other, Self::new()));
-        while let Some(node_ptr) = node_eater.pop_first_node() {
-            unsafe {
-                self.insert_node(node_ptr);
-            }
-        }
-    }
-
-    /// Splits the collection into two at the given key. Returns everything after the given key,
-    /// including the key.
-    pub fn split_off<Q>(&mut self, key: &Q) -> Self
-    where
-        K: Borrow<Q>,
-        Q: ?Sized + Ord,
-    {
-        let mut node_eater = NodeEater::new(mem::replace(self, Self::new()));
-        let mut offsplit = Self::new();
-        while let Some(node_ptr) = node_eater.pop_first_node() {
-            unsafe {
-                if node_ptr.as_ref().key.borrow() < key {
-                    self.insert_node(node_ptr);
-                } else {
-                    offsplit.insert_node(node_ptr);
-                }
-            }
-        }
-        offsplit
-    }
-
-    /// Gets the map entry of given key for in-place manipulation.
-    pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
-        let mut parent: Link<K, V> = None;
-        let mut link_ptr: LinkPtr<K, V> = unsafe { LinkPtr::new_unchecked(&mut self.root) };
-        unsafe {
-            while let Some(mut node_ptr) = link_ptr.as_ref() {
-                if key == node_ptr.as_ref().key {
-                    // Found key in the map -> return occupied entry
-                    return Entry::Occupied(OccupiedEntry {
-                        map: self,
-                        node_ptr,
-                        marker: PhantomData,
-                    });
-                } else {
-                    parent = *link_ptr.as_ref();
-                    if key < node_ptr.as_ref().key {
-                        link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().left);
-                    } else {
-                        link_ptr = LinkPtr::new_unchecked(&mut node_ptr.as_mut().right);
-                    }
-                }
-            }
-        }
-
-        // Key is not in the map -> return vacant entry
-        Entry::Vacant(VacantEntry {
-            map: self,
-            parent,
-            insert_pos: link_ptr,
-            key,
-            marker: PhantomData,
-        })
-    }
 
     /// Asserts that the internal tree structure is consistent.
     #[cfg(any(test, feature = "consistency_check"))]
-    pub fn check_consistency(&self) {
+    pub fn check_consistency(&self)
+    where
+        K: Ord,
+    {
         unsafe {
             // Check root link
             if let Some(root_node_ptr) = self.root {
@@ -1049,6 +1060,77 @@ impl<K, V> AvlTreeMap<K, V> {
         }
     }
 
+    /// Makes a clone of the maps tree structure.
+    fn clone_tree(&self) -> Self
+    where
+        K: Clone,
+        V: Clone,
+    {
+        let mut other = Self {
+            root: None,
+            num_nodes: self.num_nodes,
+        };
+
+        if let Some(mut node_ptr) = self.root {
+            unsafe {
+                let mut other_node_ptr = Node::create(
+                    None,
+                    node_ptr.as_ref().key.clone(),
+                    node_ptr.as_ref().value.clone(),
+                );
+                other.root = Some(other_node_ptr);
+
+                let height = node_ptr.as_ref().height as usize;
+                let mut nodes_with_right_child = Vec::with_capacity(height);
+
+                loop {
+                    if let Some(left_ptr) = node_ptr.as_ref().left {
+                        let other_left_ptr = Node::create(
+                            Some(other_node_ptr),
+                            left_ptr.as_ref().key.clone(),
+                            left_ptr.as_ref().value.clone(),
+                        );
+                        other_node_ptr.as_mut().left = Some(other_left_ptr);
+
+                        if node_ptr.as_ref().right.is_some() {
+                            nodes_with_right_child.push((node_ptr, other_node_ptr));
+                        }
+
+                        node_ptr = left_ptr;
+                        other_node_ptr = other_left_ptr;
+
+                        continue;
+                    }
+
+                    if node_ptr.as_ref().right.is_none() {
+                        if let Some((next_ptr, other_next_ptr)) = nodes_with_right_child.pop() {
+                            node_ptr = next_ptr;
+                            other_node_ptr = other_next_ptr;
+                        }
+                    }
+
+                    if let Some(right_ptr) = node_ptr.as_ref().right {
+                        let other_right_ptr = Node::create(
+                            Some(other_node_ptr),
+                            right_ptr.as_ref().key.clone(),
+                            right_ptr.as_ref().value.clone(),
+                        );
+                        other_node_ptr.as_mut().right = Some(other_right_ptr);
+
+                        node_ptr = right_ptr;
+                        other_node_ptr = other_right_ptr;
+
+                        continue;
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        other
+    }
+
     #[allow(dead_code)]
     fn preorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
         Self::traverse(self.root, f, |_| {}, |_| {});
@@ -1120,75 +1202,6 @@ impl<K, V> AvlTreeMap<K, V> {
                 }
             }
         }
-    }
-}
-
-impl<K: Clone, V: Clone> AvlTreeMap<K, V> {
-    /// Make a clone of the tree structure.
-    fn clone_tree(&self) -> Self {
-        let mut other = Self {
-            root: None,
-            num_nodes: self.num_nodes,
-        };
-
-        if let Some(mut node_ptr) = self.root {
-            unsafe {
-                let mut other_node_ptr = Node::create(
-                    None,
-                    node_ptr.as_ref().key.clone(),
-                    node_ptr.as_ref().value.clone(),
-                );
-                other.root = Some(other_node_ptr);
-
-                let height = node_ptr.as_ref().height as usize;
-                let mut nodes_with_right = Vec::with_capacity(height);
-
-                loop {
-                    if let Some(left_ptr) = node_ptr.as_ref().left {
-                        let other_left_ptr = Node::create(
-                            Some(other_node_ptr),
-                            left_ptr.as_ref().key.clone(),
-                            left_ptr.as_ref().value.clone(),
-                        );
-                        other_node_ptr.as_mut().left = Some(other_left_ptr);
-
-                        if node_ptr.as_ref().right.is_some() {
-                            nodes_with_right.push((node_ptr, other_node_ptr));
-                        }
-
-                        node_ptr = left_ptr;
-                        other_node_ptr = other_left_ptr;
-
-                        continue;
-                    }
-
-                    if node_ptr.as_ref().right.is_none() {
-                        if let Some((next_ptr, other_next_ptr)) = nodes_with_right.pop() {
-                            node_ptr = next_ptr;
-                            other_node_ptr = other_next_ptr;
-                        }
-                    }
-
-                    if let Some(right_ptr) = node_ptr.as_ref().right {
-                        let other_right_ptr = Node::create(
-                            Some(other_node_ptr),
-                            right_ptr.as_ref().key.clone(),
-                            right_ptr.as_ref().value.clone(),
-                        );
-                        other_node_ptr.as_mut().right = Some(other_right_ptr);
-
-                        node_ptr = right_ptr;
-                        other_node_ptr = other_right_ptr;
-
-                        continue;
-                    }
-
-                    break;
-                }
-            }
-        }
-
-        other
     }
 }
 
