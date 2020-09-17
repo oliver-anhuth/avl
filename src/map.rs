@@ -315,6 +315,11 @@ impl<K, V> AvlTreeMap<K, V> {
     where
         K: Ord,
     {
+        if self.is_empty() {
+            mem::swap(self, other);
+            return;
+        }
+
         let mut node_eater = NodeEater::new(mem::replace(other, Self::new()));
         while let Some(node_ptr) = node_eater.pop_first_node() {
             unsafe {

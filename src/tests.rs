@@ -338,6 +338,12 @@ fn test_append() {
     for value in values {
         assert_eq!(map_keys.next(), Some(&value));
     }
+
+    let mut set1 = AvlTreeSet::new();
+    let mut set2 = (0..10).collect::<AvlTreeSet<_>>();
+    set1.append(&mut set2);
+    assert_eq!(format!("{:?}", set1), "{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}");
+    assert!(set2.is_empty());
 }
 
 #[test]
