@@ -350,10 +350,11 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
 
     /// Moves all elements from other into self, leaving other empty.
     pub fn append(&mut self, other: &mut Self) {
-        let mut to_append = Self::new();
-        mem::swap(&mut to_append, other);
-        for (key, value) in to_append {
-            self.insert(key, value);
+        let mut node_eater = NodeEater::new(mem::replace(other, Self::new()));
+        while let Some(node_ptr) = node_eater.pop_first_node() {
+            unsafe {
+                self.insert_node(node_ptr);
+            }
         }
     }
 
@@ -364,17 +365,18 @@ impl<K: Ord, V> AvlTreeMap<K, V> {
         K: Borrow<Q>,
         Q: ?Sized + Ord,
     {
-        let mut to_split = Self::new();
-        let mut split_off = Self::new();
-        mem::swap(&mut to_split, self);
-        for (k, v) in to_split {
-            if k.borrow() < key {
-                self.insert(k, v);
-            } else {
-                split_off.insert(k, v);
+        let mut node_eater = NodeEater::new(mem::replace(self, Self::new()));
+        let mut offsplit = Self::new();
+        while let Some(node_ptr) = node_eater.pop_first_node() {
+            unsafe {
+                if node_ptr.as_ref().key.borrow() < key {
+                    self.insert_node(node_ptr);
+                } else {
+                    offsplit.insert_node(node_ptr);
+                }
             }
         }
-        split_off
+        offsplit
     }
 
     /// Gets the map entry of given key for in-place manipulation.
@@ -762,6 +764,34 @@ impl<K, V> AvlTreeMap<K, V> {
         self.num_nodes -= 1;
         self.unlink_node(node_ptr);
         Node::destroy(node_ptr)
+    }
+
+    unsafe fn insert_node(&mut self, mut node_ptr: NodePtr<K, V>)
+    where
+        K: Ord,
+    {
+        match self.find_insert_pos(&node_ptr.as_ref().key) {
+            InsertPos::Vacant {
+                parent,
+                mut link_ptr,
+            } => {
+                node_ptr.as_mut().reset_links(parent);
+                *link_ptr.as_mut() = Some(node_ptr);
+                if let Some(parent_ptr) = parent {
+                    self.rebalance_once(parent_ptr);
+                }
+                self.num_nodes += 1;
+            }
+            InsertPos::Occupied {
+                node_ptr: mut existing_node_ptr,
+            } => {
+                mem::swap(
+                    &mut existing_node_ptr.as_mut().value,
+                    &mut node_ptr.as_mut().value,
+                );
+                Node::destroy(node_ptr);
+            }
+        }
     }
 
     fn unlink_node(&mut self, node_ptr: NodePtr<K, V>) {
@@ -1313,6 +1343,13 @@ impl<K, V> Node<K, V> {
     unsafe fn destroy(node_ptr: NodePtr<K, V>) -> (K, V) {
         let boxed = Box::from_raw(node_ptr.as_ptr());
         (boxed.key, boxed.value)
+    }
+
+    fn reset_links(&mut self, parent: Link<K, V>) {
+        self.parent = parent;
+        self.left = None;
+        self.right = None;
+        self.height = 0;
     }
 }
 
