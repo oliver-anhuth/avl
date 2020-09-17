@@ -1945,7 +1945,20 @@ impl<K, V> NodeEater<K, V> {
         node_eater
     }
 
+    /// Pops first node from range, consumes it and returns its key value pair. Returns None if range is empty.
     fn pop_first(&mut self) -> Option<(K, V)> {
+        self.pop_first_node()
+            .map(|node_ptr| unsafe { Node::destroy(node_ptr) })
+    }
+
+    /// Pops last node from range, consumes it and returns its key value pair.
+    fn pop_last(&mut self) -> Option<(K, V)> {
+        self.pop_last_node()
+            .map(|node_ptr| unsafe { Node::destroy(node_ptr) })
+    }
+
+    /// Pops first node from range and returns it. Node has to be destroyed by caller. Returns None if range is empty.
+    fn pop_first_node(&mut self) -> Link<K, V> {
         let mut first = self.first;
         let node_ptr = first?;
         if self.first == self.last {
@@ -1997,10 +2010,11 @@ impl<K, V> NodeEater<K, V> {
             }
         }
 
-        Some(unsafe { Node::destroy(node_ptr) })
+        Some(node_ptr)
     }
 
-    fn pop_last(&mut self) -> Option<(K, V)> {
+    /// Pops last node from range and returns it. Node has to be destroyed by caller. Returns None if range is empty.
+    fn pop_last_node(&mut self) -> Link<K, V> {
         let mut last = self.last;
         let node_ptr = last?;
         if self.last == self.first {
@@ -2053,7 +2067,7 @@ impl<K, V> NodeEater<K, V> {
             }
         }
 
-        Some(unsafe { Node::destroy(node_ptr) })
+        Some(node_ptr)
     }
 
     fn postorder<F: FnMut(NodePtr<K, V>)>(&self, f: F) {
