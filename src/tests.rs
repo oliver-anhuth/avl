@@ -357,8 +357,17 @@ fn test_split() {
         .cloned(),
     );
     let offsplit = set.split_off(&115);
-    assert_eq!(format!("{:?}", set), "{0, 3, 15, 42, 100, 101, 102, 103}");
     assert_eq!(format!("{:?}", offsplit), "{115, 116, 1000}");
+    assert_eq!(format!("{:?}", set), "{0, 3, 15, 42, 100, 101, 102, 103}");
+    let offsplit = set.split_off(&104);
+    assert_eq!(format!("{:?}", offsplit), "{}");
+    assert_eq!(format!("{:?}", set), "{0, 3, 15, 42, 100, 101, 102, 103}");
+    let offsplit = set.split_off(&0);
+    assert_eq!(
+        format!("{:?}", offsplit),
+        "{0, 3, 15, 42, 100, 101, 102, 103}"
+    );
+    assert_eq!(format!("{:?}", set), "{}");
 }
 
 #[test]

@@ -315,7 +315,9 @@ impl<K, V> AvlTreeMap<K, V> {
     where
         K: Ord,
     {
+        // Check if map is empty
         if self.is_empty() {
+            // Move all entries from other into self
             mem::swap(self, other);
             return;
         }
@@ -335,17 +337,44 @@ impl<K, V> AvlTreeMap<K, V> {
         K: Ord + Borrow<Q>,
         Q: ?Sized + Ord,
     {
-        let mut node_eater = NodeEater::new(mem::replace(self, Self::new()));
         let mut offsplit = Self::new();
-        while let Some(node_ptr) = node_eater.pop_first_node() {
-            unsafe {
+
+        // Check if map is emptry or if all map keys are less than given key
+        if self
+            .find_last()
+            .map(|node_ptr| unsafe { node_ptr.as_ref().key.borrow() } < key)
+            .unwrap_or(true)
+        {
+            // Nothing to do
+            return offsplit;
+        }
+
+        // Check if all map keys are greater or equal than given key
+        if self
+            .find_first()
+            .map(|node_ptr| unsafe { node_ptr.as_ref().key.borrow() } >= key)
+            .unwrap_or(true)
+        {
+            // Move all entries to split off part leaving self empty
+            mem::swap(self, &mut offsplit);
+            return offsplit;
+        }
+
+        let mut node_eater = NodeEater::new(mem::replace(self, Self::new()));
+        unsafe {
+            while let Some(node_ptr) = node_eater.pop_first_node() {
                 if node_ptr.as_ref().key.borrow() < key {
                     self.insert_node(node_ptr);
                 } else {
                     offsplit.insert_node(node_ptr);
+                    break;
                 }
             }
+            while let Some(node_ptr) = node_eater.pop_first_node() {
+                offsplit.insert_node(node_ptr);
+            }
         }
+
         offsplit
     }
 
