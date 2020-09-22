@@ -1,7 +1,5 @@
 //! An ordered map implemented with an AVL tree.
 
-#![allow(dead_code)]
-
 use std::borrow::Borrow;
 use std::cmp::{self, Ordering};
 use std::fmt;

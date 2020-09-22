@@ -1,14 +1,13 @@
 //! An ordered set implemented with an AVL tree.
 
-#![allow(dead_code)]
-
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt;
 use std::iter::FromIterator;
 use std::ops::{BitAnd, BitOr, BitXor, RangeBounds, Sub};
 
-use crate::map::{AvlTreeMap, IntoIter as MapIntoIter, Iter as MapIter, Range as MapRange};
+pub use crate::map;
+use map::{AvlTreeMap, IntoIter as MapIntoIter, Iter as MapIter, Range as MapRange};
 
 /// An ordered set implemented with an AVL tree.
 ///
