@@ -10,8 +10,6 @@ use std::mem;
 use std::ops::{Bound, Index, RangeBounds};
 use std::ptr::NonNull;
 
-pub mod set;
-
 /// An ordered map implemented with an AVL tree.
 ///
 /// ```
@@ -608,7 +606,7 @@ impl<K, V> AvlTreeMap<K, V> {
         (first, last)
     }
 
-    fn reset_range_start_bound_included<Q>(&self, range: &mut Range<'_, K, V>, key: &Q)
+    pub(crate) fn reset_range_start_bound_included<Q>(&self, range: &mut Range<'_, K, V>, key: &Q)
     where
         K: Borrow<Q>,
         Q: Ord + ?Sized,
@@ -1561,7 +1559,7 @@ impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
 
 impl<'a, K, V> Iter<'a, K, V> {
     /// Peeks at next value without advancing the iterator.
-    fn peek(&self) -> Option<<Self as Iterator>::Item> {
+    pub(crate) fn peek(&self) -> Option<<Self as Iterator>::Item> {
         let node_ptr = self.node_iter.peek_first()?;
         unsafe {
             let key: &'a K = &(*node_ptr.as_ptr()).key;
@@ -1597,7 +1595,7 @@ where
 
 impl<K: fmt::Debug, V> Iter<'_, K, V> {
     /// Shows only the keys of the iterator, used by set implementation.
-    fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    pub(crate) fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let keys = Keys {
             node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
         };
@@ -1630,7 +1628,7 @@ impl<'a, K, V> DoubleEndedIterator for Range<'a, K, V> {
 
 impl<'a, K, V> Range<'a, K, V> {
     /// Peeks at next value without advancing the iterator.
-    fn peek(&self) -> Option<<Self as Iterator>::Item> {
+    pub(crate) fn peek(&self) -> Option<<Self as Iterator>::Item> {
         let node_ptr = self.node_iter.peek_first()?;
         unsafe {
             let key: &'a K = &(*node_ptr.as_ptr()).key;
@@ -1707,7 +1705,7 @@ impl<K: fmt::Debug, V> fmt::Debug for Keys<'_, K, V> {
 
 impl<'a, K: fmt::Debug, V> Range<'a, K, V> {
     /// Shows only the keys of the iterator, used by set implementation.
-    fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    pub(crate) fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let keys = Keys {
             node_iter: unsafe { NodeIter::new(self.node_iter.first, self.node_iter.last) },
         };
@@ -1975,7 +1973,7 @@ unsafe impl<'a, K, V> Send for NodeIter<'a, K, V> {}
 
 impl<K: fmt::Debug, V> IntoIter<K, V> {
     /// Shows only the keys of the iterator, used by set implementation.
-    fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    pub(crate) fn fmt_keys(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Safe to access elements in remaining range, no mutable references have been created yet
         let keys = Keys {
             node_iter: unsafe { NodeIter::new(self.node_eater.first, self.node_eater.last) },

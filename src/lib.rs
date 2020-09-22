@@ -6,11 +6,8 @@ pub use map::AvlTreeMap;
 #[doc(inline)]
 pub use set::AvlTreeSet;
 
-#[doc(inline)]
 pub mod map;
-
-#[doc(inline)]
-pub use map::set;
+pub mod set;
 
 #[cfg(test)]
 mod tests;
