@@ -98,6 +98,8 @@ impl<T: Ord> AvlTreeSet<T> {
     }
 }
 
+//region Implementation of AvlTreeSet
+
 impl<T> AvlTreeSet<T> {
     /// Returns true if the set contains no elements.
     pub fn is_empty(&self) -> bool {
@@ -376,6 +378,10 @@ impl<T: Ord + Clone> BitXor<&AvlTreeSet<T>> for &AvlTreeSet<T> {
         self.symmetric_difference(rhs).cloned().collect()
     }
 }
+
+//endregion Implementation of AvlTreeSet
+
+//region Implementation of iteators
 
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
@@ -696,3 +702,5 @@ impl<'a, T: Ord> Iterator for SymmetricDifference<'a, T> {
         }
     }
 }
+
+//endregion Implementation of iteators
