@@ -2102,7 +2102,7 @@ impl<K, V> NodeEater<K, V> {
                     }
                 }
 
-                // Next node is smallest child in sub tree.
+                // New first node is smallest child in sub tree.
                 if let Some(mut next_ptr) = first {
                     while let Some(left_ptr) = next_ptr.as_ref().left {
                         next_ptr = left_ptr;
@@ -2131,7 +2131,6 @@ impl<K, V> NodeEater<K, V> {
                 match node_ptr.as_ref().parent {
                     None => {
                         // Current node has no parent, left child becomes root of the tree
-                        // Current node has no parent, right child becomes root of the tree
                         //    *         1
                         //   /    =>   / \
                         //  1
@@ -2159,7 +2158,7 @@ impl<K, V> NodeEater<K, V> {
                     }
                 }
 
-                // Next node is biggest child in sub tree.
+                // New last node is biggest child in sub tree.
                 if let Some(mut next_ptr) = last {
                     while let Some(right_ptr) = next_ptr.as_ref().right {
                         next_ptr = right_ptr;
