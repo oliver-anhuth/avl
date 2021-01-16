@@ -128,7 +128,7 @@ struct NodeEater<K, V> {
     last: Link<K, V>,
 }
 
-//region Public implementation of AvlTreeMap
+// region Public implementation of AvlTreeMap
 impl<K, V> AvlTreeMap<K, V> {
     /// Creates an empty map.
     /// No memory is allocated until the first item is inserted.
@@ -505,7 +505,7 @@ impl<K, V> AvlTreeMap<K, V> {
 }
 // endregion Public implementation of AvlTreeMap
 
-//region Non-public implementation of AvlTreeMap
+// region Non-public implementation of AvlTreeMap
 impl<K, V> AvlTreeMap<K, V> {
     fn find<Q>(&self, key: &Q) -> Link<K, V>
     where
@@ -1237,9 +1237,9 @@ impl<K, V> AvlTreeMap<K, V> {
         }
     }
 }
-//endregion Non-public implementation of AvlTreeMap
+// endregion Non-public implementation of AvlTreeMap
 
-//region Trait implementations of AvlTreeMap
+// region Traits of AvlTreeMap
 
 impl<K, V> Drop for AvlTreeMap<K, V> {
     fn drop(&mut self) {
@@ -1376,9 +1376,9 @@ impl<K: Hash, V: Hash> Hash for AvlTreeMap<K, V> {
     }
 }
 
-//endregion Trait implementations of AvlTreeMap
+// endregion Trait of AvlTreeMap
 
-//region Implementation of Node
+// region Implementation of Node
 impl<K, V> Node<K, V> {
     fn create(parent: Link<K, V>, key: K, value: V) -> NodePtr<K, V> {
         let boxed = Box::new(Node {
@@ -1404,9 +1404,9 @@ impl<K, V> Node<K, V> {
         self.height = 0;
     }
 }
-//endregion Implementation of Node
+// endregion Implementation of Node
 
-//region Implementation of entries
+// region Implementation of entries
 
 impl<'a, K, V> Entry<'a, K, V> {
     /// Returns a reference to the key of the entry.
@@ -1546,9 +1546,9 @@ unsafe impl<K, V> Send for OccupiedEntry<'_, K, V> {}
 
 unsafe impl<K, V> Sync for OccupiedEntry<'_, K, V> {}
 
-//endregion Implementation of entries
+// endregion Implementation of entries
 
-//region Implementation of iterators
+// region Implementation of iterators
 
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
@@ -1937,9 +1937,9 @@ impl<K, V> DoubleEndedIterator for IntoIter<K, V> {
     }
 }
 
-//endregion Implementation of iterators
+// endregion Implementation of iterators
 
-//region Implementation of NodeIter
+// region Implementation of NodeIter
 
 impl<'a, K, V> NodeIter<'a, K, V> {
     unsafe fn new(first: Link<K, V>, last: Link<K, V>) -> Self {
@@ -2035,9 +2035,9 @@ unsafe impl<'a, K, V> Sync for NodeIter<'a, K, V> {}
 
 unsafe impl<'a, K, V> Send for NodeIter<'a, K, V> {}
 
-//endregion Implementation of NodeIter
+// endregion Implementation of NodeIter
 
-//region Implementation of NodeEater
+// region Implementation of NodeEater
 
 impl<K, V> NodeEater<K, V> {
     fn new(mut map: AvlTreeMap<K, V>) -> Self {
@@ -2191,4 +2191,4 @@ unsafe impl<K, V> Sync for NodeEater<K, V> {}
 
 unsafe impl<K, V> Send for NodeEater<K, V> {}
 
-//endregion Implementation of NodeEater
+// endregion Implementation of NodeEater
