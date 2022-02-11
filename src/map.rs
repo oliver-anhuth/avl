@@ -1260,9 +1260,19 @@ impl<K: Clone, V: Clone> Clone for AvlTreeMap<K, V> {
     }
 }
 
-unsafe impl<K, V> Sync for AvlTreeMap<K, V> {}
+unsafe impl<K, V> Sync for AvlTreeMap<K, V>
+where
+    K: Sync,
+    V: Sync,
+{
+}
 
-unsafe impl<K, V> Send for AvlTreeMap<K, V> {}
+unsafe impl<K, V> Send for AvlTreeMap<K, V>
+where
+    K: Send,
+    V: Send,
+{
+}
 
 impl<K: PartialEq, V: PartialEq> PartialEq for AvlTreeMap<K, V> {
     fn eq(&self, other: &Self) -> bool {
