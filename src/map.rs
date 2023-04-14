@@ -1,14 +1,16 @@
 //! An ordered map implemented with an AVL tree.
 
-use std::borrow::Borrow;
-use std::cmp::{self, Ordering};
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::iter::FromIterator;
-use std::marker::PhantomData;
-use std::mem;
-use std::ops::{Bound, Index, RangeBounds};
-use std::ptr::NonNull;
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+use core::borrow::Borrow;
+use core::cmp::{self, Ordering};
+use core::fmt;
+use core::hash::{Hash, Hasher};
+use core::iter::FromIterator;
+use core::marker::PhantomData;
+use core::mem;
+use core::ops::{Bound, Index, RangeBounds};
+use core::ptr::NonNull;
 
 /// An ordered map implemented with an AVL tree.
 ///

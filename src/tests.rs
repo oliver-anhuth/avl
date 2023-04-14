@@ -1,4 +1,8 @@
-use std::ops::Bound;
+use alloc::format;
+use alloc::string::String;
+use alloc::vec;
+use alloc::vec::Vec;
+use core::ops::Bound;
 
 use super::map::Entry;
 use super::{AvlTreeMap, AvlTreeSet};
@@ -781,7 +785,6 @@ fn test_set_ops() {
     );
 
     for value in s1.symmetric_difference(&s2) {
-        println!("value = {}", value);
         assert!(s1.contains(value) || s2.contains(value));
         assert!(!(s1.contains(value) && s2.contains(value)));
     }

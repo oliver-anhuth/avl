@@ -1,5 +1,8 @@
 //! Dictionary data structures implemented with an AVL tree (nearly balanced binary search tree).
 
+#![no_std]
+extern crate alloc;
+
 #[doc(inline)]
 pub use map::AvlTreeMap;
 
