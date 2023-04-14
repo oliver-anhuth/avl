@@ -1399,7 +1399,7 @@ impl<K, V> Node<K, V> {
             key,
             value,
         });
-        unsafe { NodePtr::new_unchecked(Box::into_raw(boxed)) }
+        NodePtr::from(Box::leak(boxed))
     }
 
     unsafe fn destroy(node_ptr: NodePtr<K, V>) -> (K, V) {
