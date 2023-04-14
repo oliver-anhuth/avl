@@ -652,7 +652,7 @@ fn test_set() {
     use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
 
     let mut rng = StdRng::seed_from_u64(0);
-    let mut values: Vec<i32> = (0..N).map(|_| rng.gen_range(0, N)).collect();
+    let mut values: Vec<i32> = (0..N).map(|_| rng.gen_range(1 ..= N)).collect();
 
     let mut set = AvlTreeSet::new();
     for value in &values {
