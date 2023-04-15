@@ -22,9 +22,9 @@ let mut set = AvlTreeSet::new();
 set.insert(0);
 set.insert(1);
 set.insert(2);
-assert_eq!(set.get(&1), Some(&1));
+assert!(set.contains(&1));
 set.remove(&1);
-assert!(set.get(&1).is_none());
+assert!(!set.contains(&1));
 ```
 
 This is solely to get practice with the dark art of unsafe Rust. For all common purposes one of the standard library collections should be preferable.
