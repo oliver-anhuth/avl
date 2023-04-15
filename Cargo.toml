@@ -20,3 +20,8 @@ consistency_check = []
 
 [dev-dependencies]
 rand = "0.8.5"
+criterion = "0.4"
+
+[[bench]]
+name = "benchmark"
+harness = false

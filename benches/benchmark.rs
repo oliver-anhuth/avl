@@ -3,11 +3,11 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 
 use avl::AvlTreeMap;
 
-const N: i32 = 100_000;
+const N: usize = 100_000;
 
 pub fn benchmarks(c: &mut Criterion) {
     let mut rng = StdRng::seed_from_u64(0);
-    let values: Vec<i32> = (0..N).map(|_| rng.gen()).collect();
+    let values: Vec<i32> = (1..=N).map(|_| rng.gen()).collect();
 
     c.bench_function("map_insert", |b| {
         let mut map = AvlTreeMap::new();
