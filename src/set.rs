@@ -17,9 +17,9 @@ use map::{AvlTreeMap, IntoIter as MapIntoIter, Iter as MapIter, Range as MapRang
 /// set.insert(0);
 /// set.insert(1);
 /// set.insert(2);
-/// assert_eq!(set.get(&1), Some(&1));
+/// assert!(set.contains(&1));
 /// set.remove(&1);
-/// assert!(set.get(&1).is_none());
+/// assert!(!set.contains(&1));
 /// ```
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AvlTreeSet<T> {
