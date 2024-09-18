@@ -9,8 +9,8 @@ fn main() {
     map.insert(5, "5");
     map.insert(6, "6");
 
-    println!("Level-order traversal:");
-    map.traverse_level_order(|k, v| {
-        println!("Key: {}, Value: {}", k, v);
+    println!("Level-order map traversal:");
+    map.traverse_level_order(|lv, k, v| {
+        println!("Level: {}, Key: {}, Value: {}", lv, k, v);
     });
 }

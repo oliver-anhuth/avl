@@ -2,6 +2,7 @@
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use alloc::collections::VecDeque;
 use core::borrow::Borrow;
 use core::cmp::{self, Ordering};
 use core::fmt;
@@ -454,6 +455,29 @@ impl<K, V> AvlTreeMap<K, V> {
         }
     }
 
+    /// Traverses the map in level-order and calls the given closure for each level-key-value triple.
+    pub fn traverse_level_order<F>(&self, mut f: F)
+    where
+        F: FnMut(usize, &K, &V),
+    {
+        if let Some(root_ptr) = self.root {
+            let mut queue: VecDeque<(usize, NodePtr<K, V>)> = VecDeque::new();
+            queue.push_back((0, root_ptr));
+            while let Some((level, node_ptr)) = queue.pop_front() {
+                unsafe {
+                    let node_ref = node_ptr.as_ref();
+                    f(level, &node_ref.key, &node_ref.value);
+                    if let Some(left_ptr) = node_ref.left {
+                        queue.push_back((level + 1, left_ptr));
+                    }
+                    if let Some(right_ptr) = node_ref.right {
+                        queue.push_back((level + 1, right_ptr));
+                    }
+                }
+            }
+        }
+    }
+
     /// Asserts that the internal tree structure is consistent.
     #[cfg(any(test, feature = "consistency_check"))]
     pub fn check_consistency(&self)
@@ -504,32 +528,6 @@ impl<K, V> AvlTreeMap<K, V> {
             assert_eq!(num_nodes, self.num_nodes);
         }
     }
-
-    pub fn traverse_level_order<F>(&self, mut f: F)
-    where
-        F: FnMut(&K, &V),
-    {
-        if let Some(root_ptr) = self.root {
-            let mut queue = Vec::new();
-            queue.push(root_ptr);
-            let mut i = 0;
-            while i < queue.len() {
-                let node_ptr = queue[i];
-                i += 1;
-                unsafe {
-                    let node_ref = node_ptr.as_ref();
-                    f(&node_ref.key, &node_ref.value);
-                    if let Some(left_ptr) = node_ref.left {
-                        queue.push(left_ptr);
-                    }
-                    if let Some(right_ptr) = node_ref.right {
-                        queue.push(right_ptr);
-                    }
-                }
-            }
-        }
-    }
-    
 }
 // endregion Public implementation of AvlTreeMap
 
