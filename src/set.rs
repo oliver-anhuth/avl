@@ -271,6 +271,14 @@ impl<T: Ord> AvlTreeSet<T> {
         other.is_subset(self)
     }
 
+    /// Traverses the set in level-order and calls the given closure for each level-value pair.
+    pub fn traverse_level_order<F>(&self, mut f: F)
+    where
+        F: FnMut(usize, &T),
+    {
+        self.map.traverse_level_order(|lv, v, _| f(lv, v));
+    }
+
     /// Asserts that the internal tree structure is consistent.
     #[cfg(any(test, feature = "consistency_check"))]
     pub fn check_consistency(&self) {
