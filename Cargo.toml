@@ -10,6 +10,7 @@ homepage = "https://github.com/oliver-anhuth/avl"
 license = "MIT"
 readme = "README.md"
 categories = ["algorithms", "data-structures", "no-std"]
+keywords = ["avl-tree", "binary-search-tree", "map", "set", "data-structures"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
