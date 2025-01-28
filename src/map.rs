@@ -1,8 +1,8 @@
 //! An ordered map implemented with an AVL tree.
 
 use alloc::boxed::Box;
-use alloc::vec::Vec;
 use alloc::collections::VecDeque;
+use alloc::vec::Vec;
 use core::borrow::Borrow;
 use core::cmp::{self, Ordering};
 use core::fmt;
@@ -811,13 +811,15 @@ impl<K, V> AvlTreeMap<K, V> {
         key: K,
         value: V,
     ) -> &mut V {
-        let node_ptr = Node::create(parent, key, value);
-        *insert_pos.as_mut() = Some(node_ptr);
-        if let Some(parent_ptr) = parent {
-            self.rebalance_once(parent_ptr);
+        unsafe {
+            let node_ptr = Node::create(parent, key, value);
+            *insert_pos.as_mut() = Some(node_ptr);
+            if let Some(parent_ptr) = parent {
+                self.rebalance_once(parent_ptr);
+            }
+            self.num_nodes += 1;
+            &mut (*node_ptr.as_ptr()).value
         }
-        self.num_nodes += 1;
-        &mut (*node_ptr.as_ptr()).value
     }
 
     unsafe fn insert_value_at_occupied_pos(
@@ -825,7 +827,9 @@ impl<K, V> AvlTreeMap<K, V> {
         mut node_ptr: NodePtr<K, V>,
         mut value: V,
     ) -> V {
-        mem::swap(&mut node_ptr.as_mut().value, &mut value);
+        unsafe {
+            mem::swap(&mut node_ptr.as_mut().value, &mut value);
+        }
         value
     }
 
@@ -833,33 +837,35 @@ impl<K, V> AvlTreeMap<K, V> {
         debug_assert!(self.num_nodes > 0);
         self.num_nodes -= 1;
         self.unlink_node(node_ptr);
-        Node::destroy(node_ptr)
+        unsafe { Node::destroy(node_ptr) }
     }
 
     unsafe fn insert_node(&mut self, mut node_ptr: NodePtr<K, V>)
     where
         K: Ord,
     {
-        match self.find_insert_pos(&node_ptr.as_ref().key) {
-            InsertPos::Vacant {
-                parent,
-                mut link_ptr,
-            } => {
-                node_ptr.as_mut().reset_links(parent);
-                *link_ptr.as_mut() = Some(node_ptr);
-                if let Some(parent_ptr) = parent {
-                    self.rebalance_once(parent_ptr);
+        unsafe {
+            match self.find_insert_pos(&node_ptr.as_ref().key) {
+                InsertPos::Vacant {
+                    parent,
+                    mut link_ptr,
+                } => {
+                    node_ptr.as_mut().reset_links(parent);
+                    *link_ptr.as_mut() = Some(node_ptr);
+                    if let Some(parent_ptr) = parent {
+                        self.rebalance_once(parent_ptr);
+                    }
+                    self.num_nodes += 1;
                 }
-                self.num_nodes += 1;
-            }
-            InsertPos::Occupied {
-                node_ptr: mut existing_node_ptr,
-            } => {
-                mem::swap(
-                    &mut existing_node_ptr.as_mut().value,
-                    &mut node_ptr.as_mut().value,
-                );
-                Node::destroy(node_ptr);
+                InsertPos::Occupied {
+                    node_ptr: mut existing_node_ptr,
+                } => {
+                    mem::swap(
+                        &mut existing_node_ptr.as_mut().value,
+                        &mut node_ptr.as_mut().value,
+                    );
+                    Node::destroy(node_ptr);
+                }
             }
         }
     }
@@ -1429,7 +1435,7 @@ impl<K, V> Node<K, V> {
     }
 
     unsafe fn destroy(node_ptr: NodePtr<K, V>) -> (K, V) {
-        let boxed = Box::from_raw(node_ptr.as_ptr());
+        let boxed = unsafe { Box::from_raw(node_ptr.as_ptr()) };
         (boxed.key, boxed.value)
     }
 
