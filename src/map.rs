@@ -322,7 +322,7 @@ impl<K, V> AvlTreeMap<K, V> {
             return;
         }
 
-        let mut node_eater = NodeEater::new(mem::replace(other, Self::new()));
+        let mut node_eater = NodeEater::new(mem::take(other));
         while let Some(node_ptr) = node_eater.pop_first_node() {
             unsafe {
                 self.insert_node(node_ptr);
@@ -360,7 +360,7 @@ impl<K, V> AvlTreeMap<K, V> {
             return offsplit;
         }
 
-        let mut node_eater = NodeEater::new(mem::replace(self, Self::new()));
+        let mut node_eater = NodeEater::new(mem::take(self));
         unsafe {
             while let Some(node_ptr) = node_eater.pop_first_node() {
                 if node_ptr.as_ref().key.borrow() < key {
@@ -449,7 +449,7 @@ impl<K, V> AvlTreeMap<K, V> {
     }
 
     /// Gets a mutable iterator over the entries of the map, sorted by key.
-    pub fn iter_mut(&mut self) -> IterMut<K, V> {
+    pub fn iter_mut(&mut self) -> IterMut<'_, K, V> {
         IterMut {
             node_iter: unsafe { NodeIter::new(self.find_first(), self.find_last()) },
         }
